@@ -1,0 +1,1328 @@
+"use client";
+
+import { supabase } from "@/lib/supabase";
+import { sampleProducts as sampleProductsFromFile } from "@/lib/mock-data";
+import { useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
+
+import {
+  ShoppingCart,
+  User,
+  Shield,
+  MapPinned,
+  Package,
+  Clock3,
+  Phone,
+  LogIn,
+  ClipboardList,
+  Truck,
+  BarChart3,
+  Plus,
+  Pencil,
+  CheckCircle2,
+  AlertCircle,
+  Mail,
+  Globe,
+  Save,
+  Store,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+
+const BRAND = {
+  red: "#D84A2B",
+  yellow: "#E7D02A",
+  black: "#171717",
+  cream: "#FFF9F0",
+  soft: "#F6F1E7",
+};
+
+const BUSINESS = {
+  name: "QUESO PA'BUENO",
+  phone: "689 242 5868",
+  adminEmail: "quesopabueno@gmail.com",
+  temporaryDomain: "quesopabueno-demo.vercel.app",
+  deliveryDays: ["Viernes", "Sábado", "Domingo"],
+};
+
+type Category = "Quesos" | "Lácteos / cremas / suero" | "Promociones";
+type Unit = "lb" | "unidad";
+type OrderStatus = "Nuevo" | "Confirmado" | "En preparación" | "En ruta" | "Entregado";
+type PaymentStatus = "Pendiente" | "Cobrado" | "Parcial";
+
+type Product = {
+  id: number;
+  name: string;
+  category: Category;
+  price: number;
+  unit: Unit;
+  available: boolean;
+  promo?: string;
+  image?: string;
+};
+
+type ProductRow = {
+  id: number;
+  category_id: number | null;
+  name: string;
+  slug: string | null;
+  description: string | null;
+  unit: string | null;
+  price: number | null;
+};
+
+type Customer = {
+  name: string;
+  phone: string;
+  password: string;
+  address: string;
+  reference: string;
+  preferredDay: string;
+  preferredWindow: string;
+};
+
+type CartItem = Product & { qty: number };
+
+type Order = {
+  id: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  deliveryDay: string;
+  deliveryWindow: string;
+  status: OrderStatus;
+  payment: PaymentStatus;
+  total: number;
+  items: { name: string; qty: number; unit: Unit }[];
+};
+
+const DEFAULT_PRODUCT_IMAGE =
+  "https://images.unsplash.com/photo-1628088062854-d1870b4553da?q=80&w=1200&auto=format&fit=crop";
+
+const CATEGORY_BY_ID: Record<number, Category> = {
+  1: "Quesos",
+  2: "Lácteos / cremas / suero",
+  3: "Promociones",
+};
+
+function mapDbUnit(unit: string | null): Unit {
+  return unit === "lb" ? "lb" : "unidad";
+}
+
+function mapDbProductToUiProduct(row: ProductRow): Product {
+  const category = CATEGORY_BY_ID[row.category_id ?? 1] ?? "Quesos";
+
+  return {
+    id: row.id,
+    name: row.name,
+    category,
+    price: Number(row.price ?? 0),
+    unit: mapDbUnit(row.unit),
+    available: true,
+    promo: category === "Promociones" ? "Promo" : undefined,
+    image: DEFAULT_PRODUCT_IMAGE,
+  };
+}
+
+const seedOrders: Order[] = [
+  {
+    id: "QPB-1001",
+    customerName: "Ana Pérez",
+    phone: "689-242-5868",
+    address: "Orlando, FL",
+    deliveryDay: "Viernes",
+    deliveryWindow: "9:00 AM - 12:00 PM",
+    status: "Confirmado",
+    payment: "Pendiente",
+    total: 31.0,
+    items: [
+      { name: "Queso duro", qty: 2, unit: "lb" },
+      { name: "Nata", qty: 1, unit: "unidad" },
+    ],
+  },
+  {
+    id: "QPB-1002",
+    customerName: "Luis Gómez",
+    phone: "407-555-0143",
+    address: "Winter Park, FL",
+    deliveryDay: "Sábado",
+    deliveryWindow: "1:00 PM - 4:00 PM",
+    status: "En ruta",
+    payment: "Cobrado",
+    total: 24.0,
+    items: [{ name: "Combo fin de semana", qty: 1, unit: "unidad" }],
+  },
+];
+
+const dayOptions = ["Viernes", "Sábado", "Domingo"];
+const windowOptions = [
+  "9:00 AM - 12:00 PM",
+  "1:00 PM - 4:00 PM",
+  "4:00 PM - 7:00 PM",
+];
+
+function money(value: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+}
+
+function statusBadgeClass(status: OrderStatus | PaymentStatus) {
+  switch (status) {
+    case "Nuevo":
+    case "Pendiente":
+      return "bg-yellow-100 text-yellow-900 border-yellow-300";
+    case "Confirmado":
+    case "Parcial":
+    case "En preparación":
+      return "bg-orange-100 text-orange-900 border-orange-300";
+    case "En ruta":
+      return "bg-blue-100 text-blue-900 border-blue-300";
+    case "Entregado":
+    case "Cobrado":
+      return "bg-green-100 text-green-900 border-green-300";
+    default:
+      return "bg-zinc-100 text-zinc-900 border-zinc-300";
+  }
+}
+
+function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="rounded-2xl p-3 shadow-sm" style={{ backgroundColor: BRAND.soft }}>
+        {icon}
+      </div>
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight text-zinc-900">{title}</h2>
+        <p className="text-sm text-zinc-600">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function ProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
+  return (
+    <div className="transition-transform duration-150 hover:-translate-y-1">
+      <Card className="overflow-hidden rounded-3xl border-zinc-200 bg-white shadow-sm">
+        <div className="aspect-[4/3] overflow-hidden bg-zinc-100">
+          <img src={product.image || DEFAULT_PRODUCT_IMAGE} alt={product.name} className="h-full w-full object-cover" />
+        </div>
+        <CardContent className="space-y-4 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold text-zinc-900">{product.name}</h3>
+              <p className="text-sm text-zinc-500">Venta por {product.unit}</p>
+            </div>
+            {product.promo ? (
+              <Badge className="rounded-full border-0 text-zinc-900" style={{ backgroundColor: BRAND.yellow }}>
+                Promo
+              </Badge>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-bold text-zinc-900">{money(product.price)}</p>
+              <p className="text-xs text-zinc-500">/{product.unit}</p>
+            </div>
+            {product.available ? (
+              <Button
+                className="rounded-2xl text-white shadow-sm"
+                style={{ backgroundColor: BRAND.red }}
+                onClick={() => onAdd(product)}
+              >
+                Agregar
+              </Button>
+            ) : (
+              <Badge variant="outline" className="rounded-full border-zinc-300 text-zinc-500">
+                Agotado
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function QuesoPaBuenoAppPrototype() {
+  const [appMode, setAppMode] = useState<"cliente" | "admin">("cliente");
+  const [category, setCategory] = useState<Category>("Quesos");
+  const [products, setProducts] = useState<Product[]>(sampleProductsFromFile);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [dbLoading, setDbLoading] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [adminActionError, setAdminActionError] = useState<string | null>(null);
+  const [orders, setOrders] = useState<Order[]>(seedOrders);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const [adminEmail, setAdminEmail] = useState(BUSINESS.adminEmail);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminSession, setAdminSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const [customer, setCustomer] = useState<Customer>({
+    name: "",
+    phone: "",
+    password: "",
+    address: "",
+    reference: "",
+    preferredDay: "Viernes",
+    preferredWindow: "9:00 AM - 12:00 PM",
+  });
+  const [notes, setNotes] = useState("");
+  const [selectedDay, setSelectedDay] = useState("Viernes");
+  const [selectedWindow, setSelectedWindow] = useState("9:00 AM - 12:00 PM");
+  const [adminDraft, setAdminDraft] = useState({
+    name: "",
+    category: "Quesos" as Category,
+    price: "",
+    unit: "lb" as Unit,
+  });
+
+  const loadProductsFromSupabase = async () => {
+    setDbLoading(true);
+    setDbError(null);
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, category_id, name, slug, description, unit, price")
+      .order("category_id", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (error) {
+      setDbError(error.message);
+      setProducts(sampleProductsFromFile);
+      setDbLoading(false);
+      return;
+    }
+
+    const mappedProducts = (data ?? []).map((row) => mapDbProductToUiProduct(row as ProductRow));
+
+    if (mappedProducts.length > 0) {
+      setProducts(mappedProducts);
+    } else {
+      setProducts(sampleProductsFromFile);
+    }
+
+    setDbLoading(false);
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const bootstrap = async () => {
+      const [{ data: sessionData }] = await Promise.all([
+        supabase.auth.getSession(),
+        loadProductsFromSupabase(),
+      ]);
+
+      if (!mounted) return;
+
+      setAdminSession(sessionData.session ?? null);
+      setAuthLoading(false);
+    };
+
+    bootstrap();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setAdminSession(session ?? null);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const filteredProducts = useMemo(
+    () => products.filter((p) => p.category === category),
+    [products, category]
+  );
+
+  const cartTotal = useMemo(
+    () => cart.reduce((sum, item) => sum + item.price * item.qty, 0),
+    [cart]
+  );
+
+  const weeklyOrders = useMemo(() => orders.length, [orders]);
+  const pendingOrders = useMemo(() => orders.filter((o) => o.payment === "Pendiente").length, [orders]);
+  const routeStops = useMemo(() => orders.filter((o) => o.status !== "Entregado").length, [orders]);
+  const grossSales = useMemo(() => orders.reduce((sum, order) => sum + order.total, 0), [orders]);
+
+  const adminSignedIn = Boolean(adminSession?.user);
+
+  const addToCart = (product: Product) => {
+    setCart((current) => {
+      const existing = current.find((item) => item.id === product.id);
+      if (existing) {
+        return current.map((item) => (item.id === product.id ? { ...item, qty: item.qty + 1 } : item));
+      }
+      return [...current, { ...product, qty: 1 }];
+    });
+  };
+
+  const updateQty = (id: number, delta: number) => {
+    setCart((current) =>
+      current
+        .map((item) => (item.id === id ? { ...item, qty: Math.max(0, item.qty + delta) } : item))
+        .filter((item) => item.qty > 0)
+    );
+  };
+
+  const tryCheckout = () => {
+    if (!isLoggedIn) {
+      setAuthDialogOpen(true);
+      return;
+    }
+
+    if (!customer.address.trim()) {
+      setAuthDialogOpen(true);
+      return;
+    }
+
+    const newOrder: Order = {
+      id: `QPB-${1000 + orders.length + 1}`,
+      customerName: customer.name || "Cliente",
+      phone: customer.phone,
+      address: customer.address,
+      deliveryDay: selectedDay,
+      deliveryWindow: selectedWindow,
+      status: "Nuevo",
+      payment: "Pendiente",
+      total: cartTotal,
+      items: cart.map((item) => ({ name: item.name, qty: item.qty, unit: item.unit })),
+    };
+
+    setOrders((current) => [newOrder, ...current]);
+    setCart([]);
+    setNotes("");
+  };
+
+  const registerAndContinue = () => {
+    if (!customer.name || !customer.phone || !customer.password || !customer.address) return;
+    setIsLoggedIn(true);
+    setAuthDialogOpen(false);
+  };
+
+  const adminSignIn = async () => {
+    setAuthError(null);
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: adminEmail.trim(),
+      password: adminPassword,
+    });
+
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    setAdminSession(data.session ?? null);
+    setAdminPassword("");
+  };
+
+  const adminSignOut = async () => {
+    await supabase.auth.signOut();
+    setAdminSession(null);
+    setAdminPassword("");
+    setAuthError(null);
+    setAdminActionError(null);
+  };
+
+  const createProduct = async () => {
+    if (!adminDraft.name || !adminDraft.price) return;
+
+    if (!adminSession?.user) {
+      setAdminActionError("Debes iniciar sesión como administrador para guardar productos.");
+      return;
+    }
+
+    const categoryToId: Record<Category, number> = {
+      "Quesos": 1,
+      "Lácteos / cremas / suero": 2,
+      "Promociones": 3,
+    };
+
+    setSavingProduct(true);
+    setAdminActionError(null);
+
+    const name = adminDraft.name.trim();
+    const slug = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    const { error } = await supabase.from("products").insert({
+      category_id: categoryToId[adminDraft.category],
+      name,
+      slug,
+      description: null,
+      unit: adminDraft.unit,
+      price: Number(adminDraft.price),
+    });
+
+    if (error) {
+      console.error("Error creando producto:", error.message);
+      setAdminActionError(error.message);
+      setSavingProduct(false);
+      return;
+    }
+
+    setAdminDraft({ name: "", category: "Quesos", price: "", unit: "lb" });
+    await loadProductsFromSupabase();
+    setSavingProduct(false);
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,_#fffdf8,_#f7f1e6_45%,_#efe7da_100%)] text-zinc-900">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+        <div className="mb-4 grid gap-3 md:grid-cols-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
+            <Phone className="h-4 w-4" style={{ color: BRAND.red }} />
+            <div>
+              <p className="font-semibold text-zinc-900">Teléfono del negocio</p>
+              <p className="text-zinc-600">{BUSINESS.phone}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
+            <Mail className="h-4 w-4" style={{ color: BRAND.red }} />
+            <div>
+              <p className="font-semibold text-zinc-900">Administrador principal</p>
+              <p className="text-zinc-600">{BUSINESS.adminEmail}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
+            <Globe className="h-4 w-4" style={{ color: BRAND.red }} />
+            <div>
+              <p className="font-semibold text-zinc-900">Dominio temporal</p>
+              <p className="text-zinc-600">{BUSINESS.temporaryDomain}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+          <Card className="overflow-hidden rounded-[28px] border-0 shadow-xl">
+            <div className="grid gap-0 lg:grid-cols-[1.35fr_0.65fr]">
+              <div className="p-6 md:p-8" style={{ backgroundColor: BRAND.cream }}>
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                  <Badge className="rounded-full border-0 px-4 py-1 text-sm text-zinc-900" style={{ backgroundColor: BRAND.yellow }}>
+                    QUESO PA&apos;BUENO
+                  </Badge>
+                  <Badge variant="outline" className="rounded-full border-zinc-300 px-4 py-1 text-sm">
+                    Venezolano
+                  </Badge>
+                </div>
+
+                <div className="max-w-3xl space-y-4">
+                  <h1 className="text-3xl font-black tracking-tight md:text-5xl">
+                    Pedidos, entregas y control operativo en una sola app.
+                  </h1>
+                  <p className="max-w-2xl text-base leading-7 text-zinc-700 md:text-lg">
+                    Prototipo inicial de la app de QUESO PA&apos;BUENO. Incluye catálogo público, login del cliente,
+                    carrito, registro de pedidos, panel administrativo, control de productos y resumen de entregas.
+                  </p>
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Button
+                    className="rounded-2xl px-5 text-white"
+                    style={{ backgroundColor: BRAND.red }}
+                    onClick={() => setAppMode("cliente")}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Vista cliente
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-2xl px-5"
+                    onClick={() => setAppMode("admin")}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Vista administrador
+                  </Button>
+                </div>
+
+                <div className="mt-6 rounded-3xl border border-zinc-200 bg-white/70 p-4 text-sm text-zinc-700 shadow-sm">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div>
+                      <p className="font-semibold text-zinc-900">Pedidos</p>
+                      <p>Catálogo público, login con clave y checkout protegido.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-zinc-900">Entregas</p>
+                      <p>Operación limitada a {BUSINESS.deliveryDays.join(", ")}.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-zinc-900">Contacto visible</p>
+                      <p>
+                        {BUSINESS.phone} · {BUSINESS.adminEmail}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-between gap-4 p-6 md:p-8" style={{ backgroundColor: BRAND.black }}>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  <MetricCard title="Pedidos registrados" value={String(weeklyOrders)} icon={<ClipboardList className="h-5 w-5 text-white" />} />
+                  <MetricCard title="Pendientes de cobro" value={String(pendingOrders)} icon={<AlertCircle className="h-5 w-5 text-white" />} />
+                  <MetricCard title="Paradas de ruta" value={String(routeStops)} icon={<Truck className="h-5 w-5 text-white" />} />
+                  <MetricCard title="Ventas demo" value={money(grossSales)} icon={<BarChart3 className="h-5 w-5 text-white" />} />
+                </div>
+
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-zinc-200">
+                  Base del MVP: catálogo abierto, pedido con login, entregas viernes-sábado-domingo y panel admin para
+                  productos, pedidos, clientes y reportes.
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {appMode === "cliente" ? (
+          <div className="grid gap-6 lg:grid-cols-[1fr_370px]">
+            <div className="space-y-6">
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                <CardContent className="p-6 md:p-7">
+                  <SectionTitle
+                    icon={<Package className="h-5 w-5 text-zinc-900" />}
+                    title="Catálogo público"
+                    subtitle="El cliente puede ver precios sin iniciar sesión. Para pedir, debe entrar con teléfono y clave."
+                  />
+
+                  {dbLoading ? (
+                    <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                      Cargando catálogo real desde Supabase...
+                    </div>
+                  ) : null}
+
+                  {dbError ? (
+                    <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      No se pudo leer Supabase en este intento. Se está mostrando el catálogo de respaldo local.
+                    </div>
+                  ) : null}
+
+                  <Tabs value={category} onValueChange={(v) => setCategory(v as Category)} className="mt-6">
+                    <TabsList className="grid w-full grid-cols-1 gap-2 rounded-3xl bg-zinc-100 p-2 md:grid-cols-3">
+                      <TabsTrigger value="Quesos" className="rounded-2xl">
+                        Quesos
+                      </TabsTrigger>
+                      <TabsTrigger value="Lácteos / cremas / suero" className="rounded-2xl">
+                        Lácteos / cremas / suero
+                      </TabsTrigger>
+                      <TabsTrigger value="Promociones" className="rounded-2xl">
+                        Promociones
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value={category} className="mt-6">
+                      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        {filteredProducts.map((product) => (
+                          <ProductCard key={product.id} product={product} onAdd={addToCart} />
+                        ))}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <LogIn className="h-5 w-5" />
+                      Acceso cliente
+                    </CardTitle>
+                    <CardDescription>Login con clave. Registro con dirección, día y horario preferido obligatorios.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label>Teléfono</Label>
+                      <Input
+                        placeholder="689-242-5868"
+                        value={customer.phone}
+                        onChange={(e) => setCustomer((c) => ({ ...c, phone: e.target.value }))}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Clave</Label>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        value={customer.password}
+                        onChange={(e) => setCustomer((c) => ({ ...c, password: e.target.value }))}
+                      />
+                    </div>
+                    <Button className="w-full rounded-2xl text-white" style={{ backgroundColor: BRAND.red }} onClick={() => setIsLoggedIn(true)}>
+                      Entrar
+                    </Button>
+                    <p className="text-sm text-zinc-500">
+                      Estado actual:{" "}
+                      {isLoggedIn ? (
+                        <span className="font-semibold text-green-700">sesión iniciada</span>
+                      ) : (
+                        <span className="font-semibold text-zinc-700">sin sesión</span>
+                      )}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Clock3 className="h-5 w-5" />
+                      Preferencias de entrega
+                    </CardTitle>
+                    <CardDescription>La app restringe pedidos a viernes, sábado y domingo.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label>Día de entrega</Label>
+                      <Select value={selectedDay} onValueChange={setSelectedDay}>
+                        <SelectTrigger className="rounded-2xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dayOptions.map((day) => (
+                            <SelectItem key={day} value={day}>
+                              {day}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Horario preferido</Label>
+                      <Select value={selectedWindow} onValueChange={setSelectedWindow}>
+                        <SelectTrigger className="rounded-2xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {windowOptions.map((window) => (
+                            <SelectItem key={window} value={window}>
+                              {window}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+                      El cliente debe tener dirección registrada antes de confirmar su pedido.
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <MapPinned className="h-5 w-5" />
+                      Mi perfil
+                    </CardTitle>
+                    <CardDescription>El cliente podrá editar su dirección y preferencias después de registrarse.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label>Nombre</Label>
+                      <Input
+                        value={customer.name}
+                        onChange={(e) => setCustomer((c) => ({ ...c, name: e.target.value }))}
+                        placeholder="Tu nombre"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Dirección</Label>
+                      <Input
+                        value={customer.address}
+                        onChange={(e) => setCustomer((c) => ({ ...c, address: e.target.value }))}
+                        placeholder="Dirección completa"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Referencia</Label>
+                      <Input
+                        value={customer.reference}
+                        onChange={(e) => setCustomer((c) => ({ ...c, reference: e.target.value }))}
+                        placeholder="Puerta, código, color de casa"
+                      />
+                    </div>
+                    <Button variant="outline" className="w-full rounded-2xl">
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar cambios
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <Card className="sticky top-6 rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ShoppingCart className="h-5 w-5" />
+                    Carrito
+                  </CardTitle>
+                  <CardDescription>Resumen del pedido del cliente.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {cart.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
+                      No hay productos agregados todavía.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {cart.map((item) => (
+                        <div key={item.id} className="rounded-2xl border border-zinc-200 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-zinc-900">{item.name}</p>
+                              <p className="text-sm text-zinc-500">
+                                {money(item.price)} / {item.unit}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="rounded-full">
+                              {item.qty}
+                            </Badge>
+                          </div>
+                          <div className="mt-3 flex items-center gap-2">
+                            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => updateQty(item.id, -1)}>
+                              -
+                            </Button>
+                            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => updateQty(item.id, 1)}>
+                              +
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="grid gap-2">
+                    <Label>Notas del pedido</Label>
+                    <Textarea
+                      placeholder="Ejemplo: tocar al llegar, dejar en recepción, etc."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="min-h-[90px] rounded-2xl"
+                    />
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <div className="flex items-center justify-between text-sm text-zinc-600">
+                      <span>Total estimado</span>
+                      <span className="text-lg font-bold text-zinc-900">{money(cartTotal)}</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full rounded-2xl py-6 text-base font-semibold text-white"
+                    style={{ backgroundColor: BRAND.red }}
+                    onClick={tryCheckout}
+                  >
+                    Confirmar pedido
+                  </Button>
+                  <p className="text-center text-xs text-zinc-500">Pago contra pedido · entrega viernes, sábado o domingo</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              <AdminSummaryCard title="Pedidos esta semana" value={String(weeklyOrders)} icon={<ClipboardList className="h-5 w-5" />} />
+              <AdminSummaryCard title="Pendientes de cobro" value={String(pendingOrders)} icon={<AlertCircle className="h-5 w-5" />} />
+              <AdminSummaryCard title="Entregas activas" value={String(routeStops)} icon={<Truck className="h-5 w-5" />} />
+              <AdminSummaryCard title="Venta acumulada demo" value={money(grossSales)} icon={<BarChart3 className="h-5 w-5" />} />
+            </div>
+
+            {adminSignedIn ? (
+              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
+                <div>
+                  <p className="font-semibold text-zinc-900">Sesión admin activa</p>
+                  <p className="text-zinc-600">{adminSession?.user?.email}</p>
+                </div>
+                <Button variant="outline" className="rounded-2xl" onClick={adminSignOut}>
+                  Cerrar sesión admin
+                </Button>
+              </div>
+            ) : null}
+
+            <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+              {authLoading ? (
+                <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Shield className="h-5 w-5" />
+                      Verificando sesión admin
+                    </CardTitle>
+                    <CardDescription>Esperando la sesión guardada del navegador.</CardDescription>
+                  </CardHeader>
+                </Card>
+              ) : adminSignedIn ? (
+                <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Plus className="h-5 w-5" />
+                      Gestión de productos
+                    </CardTitle>
+                    <CardDescription>El administrador puede crear, editar precios y manejar disponibilidad.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {adminActionError ? (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {adminActionError}
+                      </div>
+                    ) : null}
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-2 md:col-span-2">
+                        <Label>Nombre del producto</Label>
+                        <Input
+                          placeholder="Ejemplo: Mantequilla"
+                          value={adminDraft.name}
+                          onChange={(e) => setAdminDraft((d) => ({ ...d, name: e.target.value }))}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Categoría</Label>
+                        <Select value={adminDraft.category} onValueChange={(v) => setAdminDraft((d) => ({ ...d, category: v as Category }))}>
+                          <SelectTrigger className="rounded-2xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Quesos">Quesos</SelectItem>
+                            <SelectItem value="Lácteos / cremas / suero">Lácteos / cremas / suero</SelectItem>
+                            <SelectItem value="Promociones">Promociones</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Precio</Label>
+                        <Input
+                          placeholder="0.00"
+                          type="number"
+                          value={adminDraft.price}
+                          onChange={(e) => setAdminDraft((d) => ({ ...d, price: e.target.value }))}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Unidad</Label>
+                        <Select value={adminDraft.unit} onValueChange={(v) => setAdminDraft((d) => ({ ...d, unit: v as Unit }))}>
+                          <SelectTrigger className="rounded-2xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="lb">lb</SelectItem>
+                            <SelectItem value="unidad">unidad</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          className="w-full rounded-2xl text-white"
+                          style={{ backgroundColor: BRAND.red }}
+                          onClick={createProduct}
+                          disabled={savingProduct}
+                        >
+                          {savingProduct ? "Guardando..." : "Guardar producto"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="grid gap-3">
+                      {products.slice(0, 5).map((product) => (
+                        <div key={product.id} className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4">
+                          <div>
+                            <p className="font-semibold text-zinc-900">{product.name}</p>
+                            <p className="text-sm text-zinc-500">
+                              {product.category} · {money(product.price)} / {product.unit}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className={`rounded-full border ${
+                                product.available
+                                  ? "border-green-300 bg-green-100 text-green-800"
+                                  : "border-zinc-300 bg-zinc-100 text-zinc-600"
+                              }`}
+                            >
+                              {product.available ? "Disponible" : "Agotado"}
+                            </Badge>
+                            <Button variant="outline" size="icon" className="rounded-2xl">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Shield className="h-5 w-5" />
+                      Acceso administrador
+                    </CardTitle>
+                    <CardDescription>
+                      Inicia sesión con el correo administrador para crear y editar productos.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label>Correo</Label>
+                      <Input
+                        type="email"
+                        value={adminEmail}
+                        onChange={(e) => setAdminEmail(e.target.value)}
+                        placeholder="quesopabueno@gmail.com"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>Contraseña</Label>
+                      <Input
+                        type="password"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        placeholder="Contraseña de Supabase Auth"
+                      />
+                    </div>
+
+                    {authError ? (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {authError}
+                      </div>
+                    ) : null}
+
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+                      Este login es de la app. No depende del acceso al dashboard de Supabase, GitHub o Vercel.
+                    </div>
+
+                    <Button
+                      className="w-full rounded-2xl text-white"
+                      style={{ backgroundColor: BRAND.red }}
+                      onClick={adminSignIn}
+                    >
+                      Iniciar sesión admin
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ClipboardList className="h-5 w-5" />
+                    Pedidos y ruta de entrega
+                  </CardTitle>
+                  <CardDescription>Vista inicial del panel operativo para organizar entregas y cobros.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {orders.map((order) => (
+                    <div key={order.id} className="rounded-3xl border border-zinc-200 p-4 shadow-sm">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-zinc-900">{order.id}</p>
+                            <Badge className={`rounded-full border ${statusBadgeClass(order.status)}`}>{order.status}</Badge>
+                            <Badge className={`rounded-full border ${statusBadgeClass(order.payment)}`}>{order.payment}</Badge>
+                          </div>
+                          <p className="text-sm text-zinc-700">
+                            {order.customerName} · {order.phone}
+                          </p>
+                          <div className="space-y-1 text-sm text-zinc-500">
+                            <p className="flex items-center gap-2">
+                              <MapPinned className="h-4 w-4" />
+                              {order.address}
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <Clock3 className="h-4 w-4" />
+                              {order.deliveryDay} · {order.deliveryWindow}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-zinc-500">Total</p>
+                          <p className="text-xl font-bold text-zinc-900">{money(order.total)}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {order.items.map((item, index) => (
+                          <Badge key={`${item.name}-${index}`} variant="outline" className="rounded-full border-zinc-300 bg-zinc-50">
+                            {item.qty} {item.unit} · {item.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Store className="h-5 w-5" />
+                    Configuración del negocio
+                  </CardTitle>
+                  <CardDescription>Datos fijos iniciales del MVP y publicación temporal.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm text-zinc-700">
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="font-semibold text-zinc-900">Marca</p>
+                    <p>{BUSINESS.name}</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="font-semibold text-zinc-900">Correo admin</p>
+                    <p>{BUSINESS.adminEmail}</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="font-semibold text-zinc-900">Teléfono visible</p>
+                    <p>{BUSINESS.phone}</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="font-semibold text-zinc-900">Dominio temporal sugerido</p>
+                    <p>{BUSINESS.temporaryDomain}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Truck className="h-5 w-5" />
+                    Resumen de ruta sugerida
+                  </CardTitle>
+                  <CardDescription>Base para el módulo que luego consumirá mapas y optimización real de ruta.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-3">
+                  <RouteStopCard step="1" customer="Ana Pérez" window="Viernes · 9:00 AM - 12:00 PM" detail="Queso duro x2 · Nata x1" />
+                  <RouteStopCard step="2" customer="Luis Gómez" window="Sábado · 1:00 PM - 4:00 PM" detail="Combo fin de semana x1" />
+                  <RouteStopCard
+                    step="3"
+                    customer="Cliente siguiente"
+                    window="Domingo · 4:00 PM - 7:00 PM"
+                    detail="Espacio reservado para futuros pedidos"
+                    muted
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Phone className="h-5 w-5" />
+                    Mensajes
+                  </CardTitle>
+                  <CardDescription>Plantillas iniciales para confirmación y recordatorio de entrega.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-zinc-700">
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="font-semibold text-zinc-900">Confirmación</p>
+                    <p className="mt-1">
+                      Tu pedido fue recibido y quedó registrado. Para cualquier ajuste puedes escribir o llamar al{" "}
+                      {BUSINESS.phone}.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="font-semibold text-zinc-900">Recordatorio</p>
+                    <p className="mt-1">
+                      Hoy tenemos programada tu entrega. Mantente atento al teléfono. Soporte del negocio: {BUSINESS.phone}.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+        <DialogContent className="overflow-hidden rounded-[28px] border-0 p-0 sm:max-w-2xl">
+          <div className="grid lg:grid-cols-[0.88fr_1.12fr]">
+            <div className="p-6 text-white lg:p-8" style={{ backgroundColor: BRAND.black }}>
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold">Inicia sesión o crea tu cuenta</DialogTitle>
+                <DialogDescription className="text-zinc-300">
+                  Para confirmar el pedido, el sistema requiere teléfono, clave, dirección y preferencia de entrega.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-6 space-y-4 text-sm text-zinc-200">
+                <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                  <p>Catálogo abierto al público, checkout protegido por login.</p>
+                </div>
+                <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <MapPinned className="mt-0.5 h-5 w-5 shrink-0" />
+                  <p>Dirección obligatoria para generar la agenda y la futura ruta de entregas.</p>
+                </div>
+                <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <Truck className="mt-0.5 h-5 w-5 shrink-0" />
+                  <p>Entregas restringidas a viernes, sábado y domingo.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 lg:p-8">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2 md:col-span-2">
+                  <Label>Nombre completo</Label>
+                  <Input
+                    value={customer.name}
+                    onChange={(e) => setCustomer((c) => ({ ...c, name: e.target.value }))}
+                    placeholder="Tu nombre"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Teléfono</Label>
+                  <Input
+                    value={customer.phone}
+                    onChange={(e) => setCustomer((c) => ({ ...c, phone: e.target.value }))}
+                    placeholder="689-242-5868"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Clave</Label>
+                  <Input
+                    type="password"
+                    value={customer.password}
+                    onChange={(e) => setCustomer((c) => ({ ...c, password: e.target.value }))}
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div className="grid gap-2 md:col-span-2">
+                  <Label>Dirección</Label>
+                  <Input
+                    value={customer.address}
+                    onChange={(e) => setCustomer((c) => ({ ...c, address: e.target.value }))}
+                    placeholder="Dirección completa"
+                  />
+                </div>
+                <div className="grid gap-2 md:col-span-2">
+                  <Label>Referencia</Label>
+                  <Input
+                    value={customer.reference}
+                    onChange={(e) => setCustomer((c) => ({ ...c, reference: e.target.value }))}
+                    placeholder="Apartamento, código, color de casa, etc."
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Día preferido</Label>
+                  <Select value={customer.preferredDay} onValueChange={(v) => setCustomer((c) => ({ ...c, preferredDay: v }))}>
+                    <SelectTrigger className="rounded-2xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dayOptions.map((day) => (
+                        <SelectItem key={day} value={day}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Horario preferido</Label>
+                  <Select
+                    value={customer.preferredWindow}
+                    onValueChange={(v) => setCustomer((c) => ({ ...c, preferredWindow: v }))}
+                  >
+                    <SelectTrigger className="rounded-2xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {windowOptions.map((window) => (
+                        <SelectItem key={window} value={window}>
+                          {window}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button className="mt-6 w-full rounded-2xl py-6 text-white" style={{ backgroundColor: BRAND.red }} onClick={registerAndContinue}>
+                Guardar cuenta y continuar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-white shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm text-zinc-300">{title}</p>
+        {icon}
+      </div>
+      <p className="text-2xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function AdminSummaryCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
+  return (
+    <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+      <CardContent className="flex items-center justify-between p-5">
+        <div>
+          <p className="text-sm text-zinc-500">{title}</p>
+          <p className="mt-1 text-2xl font-bold text-zinc-900">{value}</p>
+        </div>
+        <div className="rounded-2xl p-3" style={{ backgroundColor: BRAND.soft }}>
+          {icon}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RouteStopCard({
+  step,
+  customer,
+  window,
+  detail,
+  muted = false,
+}: {
+  step: string;
+  customer: string;
+  window: string;
+  detail: string;
+  muted?: boolean;
+}) {
+  return (
+    <div className={`rounded-3xl border p-4 ${muted ? "border-dashed border-zinc-300 bg-zinc-50" : "border-zinc-200 bg-white"}`}>
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white" style={{ backgroundColor: BRAND.red }}>
+          {step}
+        </div>
+        <p className="font-semibold text-zinc-900">{customer}</p>
+      </div>
+      <p className="text-sm text-zinc-600">{window}</p>
+      <p className="mt-2 text-sm text-zinc-500">{detail}</p>
+    </div>
+  );
+}
