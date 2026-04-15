@@ -541,26 +541,23 @@ export default function Page() {
             <div className="p-8 md:p-16 text-center flex flex-col items-center justify-center" style={{ backgroundColor: BRAND.cream }}>
               <h1 className="text-4xl font-black tracking-tight md:text-6xl uppercase drop-shadow-sm">
                 <span className="text-[#FFCC00]">QUESO</span>{" "}
-                <span className="text-[#00247D]">Y LÁCTEOS</span>{" "}
+                <span className="text-[#005CE6]">Y LÁCTEOS</span>{" "}
                 <span className="text-[#CF142B]">VENEZOLANOS</span>
               </h1>
-              <p className="mt-4 max-w-2xl text-lg font-medium text-zinc-600">
-                Auténtico sabor de nuestra tierra, directo a tu mesa.
-              </p>
             </div>
 
             <div
-              className="flex flex-col md:flex-row justify-center gap-4 p-6 md:p-8"
+              className="flex flex-col md:flex-row justify-center gap-4 p-6 md:p-8 w-full"
               style={{ backgroundColor: BRAND.black }}
             >
               <MiniInfoCard 
-                title="📲 Atención (Escríbenos por WhatsApp)" 
+                title="Contactanos whatsApp" 
                 value={BUSINESS.phone} 
                 href={`https://wa.me/1${BUSINESS.phone.replace(/\D/g, '')}?text=Hola Queso Pa Bueno`} 
               />
               <MiniInfoCard
-                title="🚚 Días de Entregas"
-                value={BUSINESS.deliveryDays.join(" · ")}
+                title="Entregas"
+                value="Viernes - Sabado - Domingo"
               />
             </div>
           </div>
@@ -573,7 +570,7 @@ export default function Page() {
                 <SectionTitle
                   icon={<Package className="h-5 w-5 text-zinc-900" />}
                   title="Productos"
-                  subtitle="Puedes ver precios sin iniciar sesión. Para confirmar el pedido, debes entrar con tu cuenta."
+                  subtitle=""
                 />
 
 
@@ -589,24 +586,24 @@ export default function Page() {
                   onValueChange={(value) => setCategory(value as Category)}
                   className="mt-6"
                 >
-                  <TabsList className="flex flex-col md:flex-row w-full gap-3 bg-transparent md:bg-zinc-100 p-0 md:p-2 rounded-none md:rounded-3xl h-auto">
+                  <TabsList className="grid w-full grid-cols-3 gap-2 bg-zinc-100 p-2 rounded-3xl h-auto">
                     <TabsTrigger 
                       value="Quesos" 
-                      className="w-full rounded-2xl py-4 text-base md:text-lg font-bold data-[state=active]:bg-[#D84A2B] data-[state=active]:text-white data-[state=active]:shadow-xl shadow-sm bg-zinc-100 md:bg-transparent transition-all"
+                      className="w-full rounded-2xl py-3 text-sm md:text-lg font-bold data-[state=active]:bg-[#D84A2B] data-[state=active]:text-white data-[state=active]:shadow-xl shadow-sm transition-all"
                     >
-                      🧀 Quesos
+                      Quesos
                     </TabsTrigger>
                     <TabsTrigger
                       value="Lácteos / cremas / suero"
-                      className="w-full rounded-2xl py-4 text-base md:text-lg font-bold data-[state=active]:bg-[#D84A2B] data-[state=active]:text-white data-[state=active]:shadow-xl shadow-sm bg-zinc-100 md:bg-transparent transition-all"
+                      className="w-full rounded-2xl py-3 text-sm md:text-lg font-bold data-[state=active]:bg-[#D84A2B] data-[state=active]:text-white data-[state=active]:shadow-xl shadow-sm transition-all"
                     >
-                      🥛 Lácteos y Suero
+                      Lácteos y Suero
                     </TabsTrigger>
                     <TabsTrigger
                       value="Promociones"
-                      className="w-full rounded-2xl py-4 text-base md:text-lg font-bold data-[state=active]:bg-[#E7D02A] data-[state=active]:text-black data-[state=active]:shadow-xl shadow-sm bg-zinc-100 md:bg-transparent transition-all"
+                      className="w-full rounded-2xl py-3 text-sm md:text-lg font-bold data-[state=active]:bg-[#E7D02A] data-[state=active]:text-black data-[state=active]:shadow-xl shadow-sm transition-all"
                     >
-                      ⭐ Promociones
+                      Promociones
                     </TabsTrigger>
                   </TabsList>
 
@@ -782,8 +779,8 @@ export default function Page() {
 
 function MiniInfoCard({ title, value, href }: { title: string; value: string; href?: string }) {
   const content = (
-    <div className={`rounded-3xl border border-white/10 p-5 text-center text-white shadow-lg flex-1 min-w-[250px] transition-all duration-300 ${href ? 'bg-[#25D366]/20 border-[#25D366]/40 hover:bg-[#25D366]/30 hover:scale-[1.02] cursor-pointer' : 'bg-white/5'}`}>
-      <p className={`text-sm tracking-wide ${href ? 'text-[#25D366] font-semibold' : 'text-zinc-300'}`}>{title}</p>
+    <div className={`rounded-3xl border p-5 text-center text-white shadow-lg flex-1 min-w-[250px] transition-all duration-300 ${href ? 'bg-[#25D366] border-[#25D366] hover:bg-[#128C7E] hover:border-[#128C7E] hover:scale-[1.02] cursor-pointer' : 'border-white/10 bg-white/5'}`}>
+      <p className={`text-sm tracking-wide ${href ? 'text-white font-semibold' : 'text-zinc-300'}`}>{title}</p>
       <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
     </div>
   );
