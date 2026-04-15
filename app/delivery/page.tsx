@@ -100,7 +100,8 @@ export default function DeliveryPortal() {
         delivery_sequence: o.delivery_sequence,
         itemsCount: o.order_items.reduce((acc: number, item: any) => acc + item.quantity, 0),
         notes: "-"
-      }));
+      };
+    });
       
       // Sort strictly by the mathematical order given by the router
       mapped.sort((a,b) => (a.delivery_sequence || 999) - (b.delivery_sequence || 999));
