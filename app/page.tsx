@@ -556,19 +556,14 @@ export default function Page() {
         <Card className="mb-6 overflow-hidden rounded-[32px] border-0 shadow-2xl">
           <div className="flex flex-col">
             <div 
-              className="relative p-12 md:p-24 text-center flex flex-col items-center justify-center overflow-hidden bg-zinc-900" 
+              className="p-12 md:p-24 text-center flex flex-col items-center justify-center" 
+              style={{ backgroundColor: BRAND.black }}
             >
-              <div 
-                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40 mix-blend-luminosity hover:mix-blend-normal hover:opacity-50 transition-all duration-[2000ms]" 
-                style={{ backgroundImage: "url('/hero-vzla.png')" }} 
-              />
-              <div className="absolute inset-0 z-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
-              
-              <div className="relative z-10 flex flex-col items-center gap-1">
-                <h1 className="text-4xl font-black tracking-tight md:text-6xl uppercase drop-shadow-2xl text-white">
+              <div className="flex flex-col items-center gap-1">
+                <h1 className="text-4xl font-black tracking-tight md:text-6xl uppercase text-white">
                   QUESOS Y LÁCTEOS
                 </h1>
-                <h2 className="text-4xl font-black tracking-tight md:text-6xl uppercase drop-shadow-2xl">
+                <h2 className="text-4xl font-black tracking-tight md:text-6xl uppercase">
                   <span className="text-[#FFCC00]">VENE</span>
                   <span className="text-[#3377FF]">ZOLA</span>
                   <span className="text-[#EF233C]">NOS</span>
