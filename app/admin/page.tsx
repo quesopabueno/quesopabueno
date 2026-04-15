@@ -68,6 +68,7 @@ type Product = {
   price: number;
   unit: Unit;
   available: boolean;
+  image?: string;
 };
 
 type ProductRow = {
@@ -78,6 +79,7 @@ type ProductRow = {
   description: string | null;
   unit: string | null;
   price: number | null;
+  image_url: string | null;
 };
 
 type ProductDraft = {
@@ -85,6 +87,7 @@ type ProductDraft = {
   category: Category;
   price: string;
   unit: Unit;
+  file?: File | null;
 };
 
 type Order = {
@@ -128,6 +131,7 @@ function mapDbProductToUiProduct(row: ProductRow): Product {
     price: Number(row.price ?? 0),
     unit: mapDbUnit(row.unit),
     available: true,
+    image: row.image_url || undefined,
   };
 }
 
@@ -191,6 +195,7 @@ export default function AdminPage() {
     category: "Quesos",
     price: "",
     unit: "lb",
+    file: null,
   });
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -199,6 +204,7 @@ export default function AdminPage() {
     category: "Quesos",
     price: "",
     unit: "lb",
+    file: null,
   });
 
   const [driverDraftEmail, setDriverDraftEmail] = useState("");
@@ -360,6 +366,15 @@ export default function AdminPage() {
     setAdminActionError(null);
   };
 
+  const uploadImageToSupabase = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
+    if (uploadError) throw new Error(`Error subiendo imagen: ${uploadError.message}`);
+    const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
+    return data.publicUrl;
+  };
+
   const createProduct = async () => {
     if (!adminDraft.name.trim() || !adminDraft.price) return;
     if (!adminSignedIn) {
@@ -373,6 +388,11 @@ export default function AdminPage() {
     try {
       const name = adminDraft.name.trim();
       const slug = buildSlug(name);
+      
+      let image_url = null;
+      if (adminDraft.file) {
+        image_url = await uploadImageToSupabase(adminDraft.file);
+      }
 
       const { error } = await supabase.from("products").insert({
         category_id: CATEGORY_TO_ID[adminDraft.category],
@@ -381,6 +401,7 @@ export default function AdminPage() {
         description: null,
         unit: adminDraft.unit,
         price: Number(adminDraft.price),
+        image_url,
       });
 
       if (error) {
@@ -388,7 +409,7 @@ export default function AdminPage() {
         return;
       }
 
-      setAdminDraft({ name: "", category: "Quesos", price: "", unit: "lb" });
+      setAdminDraft({ name: "", category: "Quesos", price: "", unit: "lb", file: null });
       await loadProductsFromSupabase();
     } catch (e: any) {
       setAdminActionError(`Error de ejecución: ${e.message}`);
@@ -459,6 +480,11 @@ export default function AdminPage() {
       const name = editDraft.name.trim();
       const slug = buildSlug(name);
 
+      let image_url = undefined;
+      if (editDraft.file) {
+        image_url = await uploadImageToSupabase(editDraft.file);
+      }
+
       const { error } = await supabase
         .from("products")
         .update({
@@ -467,6 +493,7 @@ export default function AdminPage() {
           slug,
           unit: editDraft.unit,
           price: Number(editDraft.price),
+          ...(image_url ? { image_url } : {})
         })
         .eq("id", editingProduct.id);
 
@@ -615,6 +642,15 @@ export default function AdminPage() {
                         <SelectItem value="unidad">unidad</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="grid gap-2 md:col-span-2">
+                    <Label>Foto del producto (Opcional)</Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setAdminDraft((d) => ({ ...d, file: e.target.files?.[0] || null }))}
+                      className="rounded-2xl cursor-pointer"
+                    />
                   </div>
                   <div className="flex items-end gap-2">
                     <Button
@@ -891,6 +927,15 @@ export default function AdminPage() {
                   <SelectItem value="unidad">unidad</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Cambiar foto (Opcional)</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setEditDraft((d) => ({ ...d, file: e.target.files?.[0] || null }))}
+                className="rounded-2xl cursor-pointer"
+              />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" className="rounded-2xl" onClick={() => setEditingProduct(null)} disabled={savingEdit}>

@@ -81,6 +81,7 @@ type ProductRow = {
   description: string | null;
   unit: string | null;
   price: number | null;
+  image_url: string | null;
 };
 
 type CartItem = Product & { qty: number };
@@ -129,7 +130,7 @@ function mapDbProductToUiProduct(row: ProductRow): Product {
     unit: mapDbUnit(row.unit),
     available: true,
     promo: category === "Promociones" ? "Promo" : undefined,
-    image: DEFAULT_PRODUCT_IMAGE,
+    image: row.image_url || DEFAULT_PRODUCT_IMAGE,
   };
 }
 
@@ -271,7 +272,7 @@ export default function Page() {
 
     const { data, error } = await supabase
       .from("products")
-      .select("id, category_id, name, slug, description, unit, price")
+      .select("id, category_id, name, slug, description, unit, price, image_url")
       .order("category_id", { ascending: true })
       .order("name", { ascending: true });
 
