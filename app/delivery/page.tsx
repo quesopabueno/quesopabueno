@@ -85,10 +85,12 @@ export default function DeliveryPortal() {
       const rawOrders = await getAdminOrders();
       const active = rawOrders.filter(o => o.order_status !== "Entregado" && o.delivery_sequence !== null);
       
-      const mapped = active.map(o => ({
-        id: `QPB-${o.order_number}`,
-        db_id: o.id,
-        customerName: o.customer_name_snapshot || "Desconocido",
+      const mapped = active.map(o => {
+        const oNum = String(o.order_number);
+        return {
+          id: oNum.startsWith("QPB") ? oNum : `QPB-${oNum}`,
+          db_id: o.id,
+          customerName: o.customer_name_snapshot || "Desconocido",
         phone: o.customer_phone_snapshot || "-",
         address: o.address_snapshot || "-",
         zipCode: "N/A", 

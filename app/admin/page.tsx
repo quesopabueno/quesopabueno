@@ -90,6 +90,7 @@ type ProductDraft = {
 type Order = {
   id: string;
   db_id: string;
+  createdAt: string;
   customerName: string;
   phone: string;
   address: string;
@@ -231,23 +232,27 @@ export default function AdminPage() {
     setOrdersLoading(true);
     try {
       const data = await getAdminOrders();
-      const mappedOrders: Order[] = data.map((o: any) => ({
-        id: `QPB-${o.order_number}`,
-        db_id: o.id,
-        customerName: o.customer_name_snapshot || "Desconocido",
-        phone: o.customer_phone_snapshot || "-",
-        address: o.address_snapshot || "-",
-        deliveryDay: o.delivery_day,
-        deliveryWindow: o.delivery_window,
-        status: o.order_status,
-        payment: o.payment_status,
-        total: o.total,
-        items: o.order_items.map((i: any) => ({
-          name: i.product_name_snapshot || "Producto",
-          qty: i.quantity,
-          unit: i.unit_snapshot || "u",
-        })),
-      }));
+      const mappedOrders: Order[] = data.map((o: any) => {
+        const oNum = String(o.order_number);
+        return {
+          id: oNum.startsWith("QPB") ? oNum : `QPB-${oNum}`,
+          db_id: o.id,
+          createdAt: o.created_at ? new Date(o.created_at).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) : '',
+          customerName: o.customer_name_snapshot || "Desconocido",
+          phone: o.customer_phone_snapshot || "-",
+          address: o.address_snapshot || "-",
+          deliveryDay: o.delivery_day,
+          deliveryWindow: o.delivery_window,
+          status: o.order_status,
+          payment: o.payment_status,
+          total: o.total,
+          items: o.order_items.map((i: any) => ({
+            name: i.product_name_snapshot || "Producto",
+            qty: i.quantity,
+            unit: i.unit_snapshot || "u",
+          })),
+        };
+      });
       setOrders(mappedOrders);
     } catch (e: any) {
       setAdminActionError(e.message);
@@ -733,7 +738,7 @@ export default function AdminPage() {
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-zinc-900">{order.id}</p>
+                        <p className="font-semibold text-zinc-900">{order.id} <span className="text-xs font-normal text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md ml-1">{order.createdAt}</span></p>
                         
                         <Select value={order.status} onValueChange={(v) => handleStatusChange(order.db_id, v as OrderStatus)}>
                           <SelectTrigger className={`h-7 rounded-full px-3 text-xs font-medium border ${statusBadgeClass(order.status)}`}>
