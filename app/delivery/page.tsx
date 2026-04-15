@@ -207,7 +207,19 @@ export default function DeliveryPortal() {
                   <MapPin className="w-5 h-5" />
                 </a>
               </div>
-              <p className="mt-2 font-medium">📞 <a href={`tel:${o.phone}`} className="text-blue-600 underline">{o.phone}</a></p>
+              <div className="mt-3 flex gap-3">
+                <a href={`tel:${o.phone}`} className="flex-1 bg-zinc-200 text-zinc-800 p-2.5 rounded-xl text-center text-sm font-bold shadow-sm hover:scale-[1.02] transition-all">
+                  📞 Llamar
+                </a>
+                <a 
+                  href={`https://wa.me/1${o.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${o.customerName}, soy tu repartidor de Queso Pa'Bueno. ¡Ya voy en camino con tu pedido!🧀🚗`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 bg-[#25D366] text-white p-2.5 rounded-xl text-center text-sm font-bold shadow-sm hover:scale-[1.02] transition-all"
+                >
+                  💬 WhatsApp
+                </a>
+              </div>
             </div>
             
             <div className="text-sm flex items-center justify-center gap-2 text-zinc-600 font-bold py-2 bg-zinc-50 rounded-xl">
