@@ -451,14 +451,26 @@ export default function Page() {
             </Badge>
 
             {clientSignedIn ? (
-              <Button
-                variant="outline"
-                className="rounded-2xl"
-                onClick={() => setProfileOpen(true)}
-              >
-                <User className="mr-2 h-4 w-4" />
-                Mi perfil
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="rounded-2xl"
+                  onClick={() => setProfileOpen(true)}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Mi perfil
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="rounded-2xl text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    setProfileOpen(false);
+                  }}
+                >
+                  Cerrar sesión
+                </Button>
+              </div>
             ) : null}
           </div>
 

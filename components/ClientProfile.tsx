@@ -232,32 +232,6 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
     }
   }
 
-  async function handleSignOut() {
-    try {
-      setErrorMessage("");
-      setSuccessMessage("");
-
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        throw new Error(
-          `Supabase error: ${error.message} | code: ${error.code ?? "N/A"}`
-        );
-      }
-
-      setIsLoggedIn(false);
-      setEmail("");
-      resetForm();
-      setSuccessMessage("Sesión cerrada correctamente.");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "No se pudo cerrar sesión.";
-
-      console.error("Client sign out error:", message);
-      setErrorMessage(message);
-    }
-  }
-
   if (loading) {
     return (
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -300,13 +274,6 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
               Volver
             </button>
           )}
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded-xl border border-zinc-300 bg-white px-4 py-2 font-medium text-red-600 transition hover:bg-red-50"
-          >
-            Cerrar sesión
-          </button>
         </div>
       </div>
 
