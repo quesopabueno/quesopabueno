@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
-import CustomersSection from "@/components/CustomersSection";
 import {
   Shield,
   ClipboardList,
@@ -206,11 +205,6 @@ export default function AdminPage() {
     unit: "lb",
     file: null,
   });
-
-  const [driverDraftEmail, setDriverDraftEmail] = useState("");
-  const [driverDraftPwd, setDriverDraftPwd] = useState("");
-  const [creatingDriver, setCreatingDriver] = useState(false);
-  const [driverMsg, setDriverMsg] = useState("");
 
   const loadProductsFromSupabase = async () => {
     setDbLoading(true);
@@ -415,42 +409,6 @@ export default function AdminPage() {
       setAdminActionError(`Error de ejecución: ${e.message}`);
     } finally {
       setSavingProduct(false);
-    }
-  };
-
-  const createDeliveryUser = async () => {
-    if (!driverDraftEmail.trim() || !driverDraftPwd.trim()) return;
-    setCreatingDriver(true);
-    setDriverMsg("");
-
-    try {
-      const tempSupabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { auth: { persistSession: false, autoRefreshToken: false } }
-      );
-
-      const { data, error } = await tempSupabase.auth.signUp({
-        email: driverDraftEmail.trim(),
-        password: driverDraftPwd,
-      });
-
-      if (error) throw new Error(error.message);
-      if (!data.user) throw new Error("No se pudo crear el usuario Auth.");
-
-      const { error: insertError } = await supabase.from("delivery_users").insert({
-        user_id: data.user.id,
-      });
-
-      if (insertError) throw new Error("Error insertando rol: " + insertError.message);
-
-      setDriverMsg("✅ Repartidor creado y autorizado exitosamente.");
-      setDriverDraftEmail("");
-      setDriverDraftPwd("");
-    } catch (e: any) {
-      setDriverMsg("❌ Error: " + e.message);
-    } finally {
-      setCreatingDriver(false);
     }
   };
 
@@ -831,58 +789,6 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </div>
-
-        {adminSignedIn ? (
-          <section className="mt-6 space-y-6">
-            <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Truck className="h-5 w-5" />
-                  Alta de Repartidores
-                </CardTitle>
-                <CardDescription>
-                  Crea nuevas cuentas para el portal móvil de logística e insértalas en la tabla `delivery_users`.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-3 items-end">
-                  <div className="grid gap-2">
-                    <Label>Correo del chofer</Label>
-                    <Input 
-                      type="email" 
-                      placeholder="chofer@queso.com"
-                      value={driverDraftEmail}
-                      onChange={e => setDriverDraftEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Contraseña</Label>
-                    <Input 
-                      type="password" 
-                      placeholder="Mínimo 6 caracteres"
-                      value={driverDraftPwd}
-                      onChange={e => setDriverDraftPwd(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Button 
-                      className="w-full rounded-2xl bg-black text-white" 
-                      onClick={createDeliveryUser}
-                      disabled={creatingDriver}
-                    >
-                      {creatingDriver ? "Creando..." : "Crear acceso de entrega"}
-                    </Button>
-                  </div>
-                </div>
-                {driverMsg && (
-                  <p className="mt-4 text-sm font-medium text-zinc-700">{driverMsg}</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <CustomersSection />
-          </section>
-        ) : null}
       </div>
 
       <Dialog open={Boolean(editingProduct)} onOpenChange={(open) => !open && setEditingProduct(null)}>
