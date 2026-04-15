@@ -112,8 +112,18 @@ export default function ClientRegisterForm({
         return;
     }
 
+    if (!cleanedHouseOrApt) {
+        setErrorMessage("Debes proporcionar el número de casa o apartamento.");
+        return;
+    }
+
     if (!cleanedZipCode) {
         setErrorMessage("Es obligatorio indicar tu código postal para la entrega.");
+        return;
+    }
+
+    if (!cleanedNotes) {
+        setErrorMessage("Por favor ingresa algunas indicaciones o notas para la entrega.");
         return;
     }
 
@@ -304,6 +314,7 @@ export default function ClientRegisterForm({
               onChange={(e) => setHouseOrApt(e.target.value)}
               placeholder="Apt 4B / Casa 12"
               className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
+              required
             />
           </div>
 
@@ -381,6 +392,7 @@ export default function ClientRegisterForm({
               placeholder="Indicaciones de entrega, referencia, observaciones..."
               rows={4}
               className="min-h-[120px] w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
+              required
             />
           </div>
         </div>

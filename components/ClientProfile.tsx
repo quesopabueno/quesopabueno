@@ -159,6 +159,9 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
       setErrorMessage("");
       setSuccessMessage("");
 
+      if (!houseOrApt.trim()) throw new Error("Debes proporcionar el número de casa o apartamento.");
+      if (!notes.trim()) throw new Error("Por favor ingresa algunas indicaciones o notas para la entrega.");
+
       const {
         data: { user },
         error: userError,
@@ -337,6 +340,7 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
               value={houseOrApt}
               onChange={(e) => setHouseOrApt(e.target.value)}
               className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
+              required
             />
           </div>
 
@@ -383,6 +387,7 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
               className="min-h-[120px] w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
+              required
             />
           </div>
         </div>
