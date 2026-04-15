@@ -769,7 +769,7 @@ export default function Page() {
       </div>
 
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent className="rounded-[28px] border-0 p-0 sm:max-w-4xl">
+        <DialogContent className="rounded-[28px] border-0 p-0 sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="bg-white p-6 lg:p-8">
             <ClientProfile onClose={() => setProfileOpen(false)} />
           </div>
