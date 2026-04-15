@@ -430,6 +430,9 @@ export default function Page() {
       setCart([]);
       setNotes("");
       setOrderSuccessMsg("¡Tu pedido fue confirmado exitosamente! Pago contra entrega.");
+      setTimeout(() => {
+        document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
       setTimeout(() => setOrderSuccessMsg(""), 4000);
     } catch (err: any) {
       alert("Hubo un error al procesar el pedido: " + err.message);
