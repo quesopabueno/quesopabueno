@@ -83,7 +83,7 @@ export default function DeliveryPortal() {
   const loadOrders = async () => {
     try {
       const rawOrders = await getAdminOrders();
-      const active = rawOrders.filter(o => o.status !== "Entregado" && o.delivery_sequence !== null);
+      const active = rawOrders.filter(o => o.order_status !== "Entregado" && o.delivery_sequence !== null);
       
       const mapped = active.map(o => ({
         id: `QPB-${o.order_number}`,
