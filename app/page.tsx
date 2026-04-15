@@ -202,25 +202,25 @@ function ProductCard({
             ) : null}
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-bold text-zinc-900">
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xl font-bold text-zinc-900">
                 {money(product.price)}
               </p>
-              <p className="text-xs text-zinc-500">/{product.unit}</p>
+              <p className="text-xs uppercase font-medium tracking-wider text-zinc-500">x {product.unit}</p>
             </div>
             {product.available ? (
               <Button
-                className="rounded-2xl text-white shadow-sm"
+                className="w-full rounded-xl py-6 text-base font-bold text-white shadow-sm transition-all hover:scale-[1.02]"
                 style={{ backgroundColor: BRAND.red }}
                 onClick={() => onAdd(product)}
               >
-                Agregar
+                AGREGAR
               </Button>
             ) : (
               <Badge
                 variant="outline"
-                className="rounded-full border-zinc-300 text-zinc-500"
+                className="w-full justify-center rounded-xl py-3 text-base border-zinc-300 text-zinc-500"
               >
                 Agotado
               </Badge>
@@ -552,12 +552,25 @@ export default function Page() {
 
         <Card className="mb-6 overflow-hidden rounded-[32px] border-0 shadow-2xl">
           <div className="flex flex-col">
-            <div className="p-8 md:p-16 text-center flex flex-col items-center justify-center" style={{ backgroundColor: BRAND.cream }}>
-              <h1 className="text-4xl font-black tracking-tight md:text-6xl uppercase drop-shadow-sm">
-                <span className="text-[#FFCC00]">QUESO</span>{" "}
-                <span className="text-[#005CE6]">Y LÁCTEOS</span>{" "}
-                <span className="text-[#CF142B]">VENEZOLANOS</span>
-              </h1>
+            <div 
+              className="relative p-12 md:p-24 text-center flex flex-col items-center justify-center overflow-hidden bg-zinc-900" 
+            >
+              <div 
+                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40 mix-blend-luminosity hover:mix-blend-normal hover:opacity-50 transition-all duration-[2000ms]" 
+                style={{ backgroundImage: "url('/hero-vzla.png')" }} 
+              />
+              <div className="absolute inset-0 z-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
+              
+              <div className="relative z-10 flex flex-col items-center gap-1">
+                <h1 className="text-4xl font-black tracking-tight md:text-6xl uppercase drop-shadow-2xl text-white">
+                  QUESOS Y LÁCTEOS
+                </h1>
+                <h2 className="text-4xl font-black tracking-tight md:text-6xl uppercase drop-shadow-2xl">
+                  <span className="text-[#FFCC00]">VENE</span>
+                  <span className="text-[#3377FF]">ZOLA</span>
+                  <span className="text-[#EF233C]">NOS</span>
+                </h2>
+              </div>
             </div>
 
             <div
