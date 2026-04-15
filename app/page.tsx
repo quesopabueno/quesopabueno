@@ -372,12 +372,14 @@ export default function Page() {
     setAuthTab("login");
     setAuthPanelKey((current) => current + 1);
     setAuthDialogOpen(true);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
   };
 
   const openRegister = () => {
     setAuthTab("register");
     setAuthPanelKey((current) => current + 1);
     setAuthDialogOpen(true);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
   };
 
   const tryCheckout = async () => {
