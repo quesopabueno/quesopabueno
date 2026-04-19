@@ -801,9 +801,9 @@ export default function Page() {
 
 function MiniInfoCard({ title, value, href }: { title: string; value: string; href?: string }) {
   const content = (
-    <div className={`rounded-3xl border p-5 text-center text-white shadow-lg flex-1 min-w-[250px] transition-all duration-300 ${href ? 'bg-[#25D366] border-[#25D366] hover:bg-[#128C7E] hover:border-[#128C7E] hover:scale-[1.02] cursor-pointer' : 'border-white/10 bg-white/5'}`}>
+    <div className={`rounded-2xl border p-4 text-center text-white shadow-lg flex-1 min-w-[200px] transition-all duration-300 ${href ? 'bg-[#25D366] border-[#25D366] hover:bg-[#128C7E] hover:border-[#128C7E] hover:scale-[1.02] cursor-pointer' : 'border-white/10 bg-white/5'}`}>
       <p className={`text-sm tracking-wide ${href ? 'text-white font-semibold' : 'text-zinc-300'}`}>{title}</p>
-      <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
+      <p className="mt-1 text-xl font-bold tracking-tight">{value}</p>
     </div>
   );
 
