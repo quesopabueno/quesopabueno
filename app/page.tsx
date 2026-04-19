@@ -10,7 +10,7 @@ import ClientRegisterForm from "@/components/ClientRegisterForm";
 import ClientLoginForm from "@/components/ClientLoginForm";
 import ClientProfile from "@/components/ClientProfile";
 
-import { ShoppingCart, Package, User } from "lucide-react";
+import { ShoppingCart, Package, User, MessageCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -492,7 +492,7 @@ export default function Page() {
                 style={{ backgroundColor: BRAND.red }}
                 onClick={openRegister}
               >
-                Crear cliente
+                Regístrate
               </Button>
             </div>
           ) : null}
@@ -535,7 +535,7 @@ export default function Page() {
                     Ingresar
                   </TabsTrigger>
                   <TabsTrigger value="register" className="rounded-2xl">
-                    Crear cliente
+                    Regístrate
                   </TabsTrigger>
                 </TabsList>
 
@@ -572,11 +572,20 @@ export default function Page() {
               className="flex flex-col md:flex-row justify-center gap-4 p-6 md:p-8 w-full"
               style={{ backgroundColor: BRAND.black }}
             >
-              <MiniInfoCard 
-                title="Contactanos whatsApp" 
-                value={BUSINESS.phone} 
-                href={`https://wa.me/1${BUSINESS.phone.replace(/\D/g, '')}?text=Hola Queso Pa Bueno`} 
-              />
+              <div 
+                className="rounded-2xl border flex-1 min-w-[200px] p-4 text-center text-white shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-center gap-1 hover:scale-[1.02] hover:brightness-110"
+                style={{ backgroundColor: BRAND.red, borderColor: BRAND.red }}
+                onClick={() => {
+                  if (clientSignedIn) {
+                    document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  } else {
+                    openRegister();
+                  }
+                }}
+              >
+                <p className="text-sm tracking-wide text-white/90">Regístrate o inicia sesión</p>
+                <p className="text-xl font-bold tracking-tight">Haz tu pedido</p>
+              </div>
               <MiniInfoCard
                 title="Entregas"
                 value="Sábado - Domingo"
@@ -781,6 +790,16 @@ export default function Page() {
                 <p className="text-center text-xs text-zinc-500">
                   Pago contra pedido · entrega sábado o domingo
                 </p>
+
+                <a
+                  href={`https://wa.me/1${BUSINESS.phone.replace(/\D/g, "")}?text=Hola Queso Pa Bueno, necesito ayuda con mi pedido.`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 text-sm font-semibold text-white shadow-lg transition-all hover:bg-[#128C7E] hover:scale-[1.02]"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Contáctanos por WhatsApp
+                </a>
               </CardContent>
             </Card>
           </div>
