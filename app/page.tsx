@@ -49,7 +49,7 @@ const BRAND = {
 const BUSINESS = {
   name: "QUESO PA'BUENO",
   phone: "689 242 5868",
-  deliveryDays: ["Viernes", "Sábado", "Domingo"],
+  deliveryDays: ["Sábado", "Domingo"],
 };
 
 type Category = "Quesos" | "Lácteos / cremas / suero" | "Promociones";
@@ -108,7 +108,7 @@ const CATEGORY_BY_ID: Record<number, Category> = {
   3: "Promociones",
 };
 
-const dayOptions = ["Viernes", "Sábado", "Domingo"];
+const dayOptions = ["Sábado", "Domingo"];
 const windowOptions = [
   "9:00 AM - 12:00 PM",
   "1:00 PM - 4:00 PM",
@@ -245,7 +245,7 @@ export default function Page() {
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
   const [authPanelKey, setAuthPanelKey] = useState(0);
   const [notes, setNotes] = useState("");
-  const [selectedDay, setSelectedDay] = useState("Viernes");
+  const [selectedDay, setSelectedDay] = useState("Sábado");
   const [selectedWindow, setSelectedWindow] = useState("9:00 AM - 12:00 PM");
   const [orders, setOrders] = useState<Order[]>([]);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -579,7 +579,7 @@ export default function Page() {
               />
               <MiniInfoCard
                 title="Entregas"
-                value="Viernes - Sabado - Domingo"
+                value="Sábado - Domingo"
               />
             </div>
           </div>
@@ -779,7 +779,7 @@ export default function Page() {
                 </Button>
 
                 <p className="text-center text-xs text-zinc-500">
-                  Pago contra pedido · entrega viernes, sábado o domingo
+                  Pago contra pedido · entrega sábado o domingo
                 </p>
               </CardContent>
             </Card>

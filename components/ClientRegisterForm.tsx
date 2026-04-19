@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { createCustomer } from "@/lib/customers";
 
-const deliveryDayOptions = ["Viernes", "Sábado", "Domingo"];
+const deliveryDayOptions = ["Sábado", "Domingo"];
 
 const deliveryTimeOptions = [
   "9:00 AM - 12:00 PM",
@@ -27,7 +27,7 @@ export default function ClientRegisterForm({
   const [streetAddress, setStreetAddress] = useState("");
   const [houseOrApt, setHouseOrApt] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [preferredDeliveryDay, setPreferredDeliveryDay] = useState("Viernes");
+  const [preferredDeliveryDay, setPreferredDeliveryDay] = useState("Sábado");
   const [preferredDeliveryTime, setPreferredDeliveryTime] = useState(
     "9:00 AM - 12:00 PM"
   );
@@ -55,7 +55,7 @@ export default function ClientRegisterForm({
     setStreetAddress("");
     setHouseOrApt("");
     setZipCode("");
-    setPreferredDeliveryDay("Viernes");
+    setPreferredDeliveryDay("Sábado");
     setPreferredDeliveryTime("9:00 AM - 12:00 PM");
     setNotes("");
     setPassword("");

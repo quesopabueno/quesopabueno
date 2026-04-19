@@ -17,7 +17,7 @@ type ClientProfileRow = {
   notes: string | null;
 };
 
-const deliveryDayOptions = ["Viernes", "Sábado", "Domingo"];
+const deliveryDayOptions = ["Sábado", "Domingo"];
 
 const deliveryTimeOptions = [
   "9:00 AM - 12:00 PM",
@@ -41,7 +41,7 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
   const [streetAddress, setStreetAddress] = useState("");
   const [houseOrApt, setHouseOrApt] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [preferredDeliveryDay, setPreferredDeliveryDay] = useState("Viernes");
+  const [preferredDeliveryDay, setPreferredDeliveryDay] = useState("Sábado");
   const [preferredDeliveryTime, setPreferredDeliveryTime] = useState(
     "9:00 AM - 12:00 PM"
   );
@@ -57,7 +57,7 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
     setStreetAddress("");
     setHouseOrApt("");
     setZipCode("");
-    setPreferredDeliveryDay("Viernes");
+    setPreferredDeliveryDay("Sábado");
     setPreferredDeliveryTime("9:00 AM - 12:00 PM");
     setNotes("");
   }
@@ -117,7 +117,7 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
         setStreetAddress("");
         setHouseOrApt("");
         setZipCode("");
-        setPreferredDeliveryDay("Viernes");
+        setPreferredDeliveryDay("Sábado");
         setPreferredDeliveryTime("9:00 AM - 12:00 PM");
         setNotes("");
         return;
@@ -129,7 +129,7 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
       setStreetAddress(profile.street_address || "");
       setHouseOrApt(profile.house_or_apt || "");
       setZipCode(profile.zip_code || "");
-      setPreferredDeliveryDay(profile.preferred_delivery_day || "Viernes");
+      setPreferredDeliveryDay(profile.preferred_delivery_day || "Sábado");
       setPreferredDeliveryTime(
         profile.preferred_delivery_time || "9:00 AM - 12:00 PM"
       );
