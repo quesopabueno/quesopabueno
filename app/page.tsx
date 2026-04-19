@@ -557,18 +557,14 @@ export default function Page() {
         <Card className="mb-6 overflow-hidden rounded-[32px] border-0 shadow-2xl">
           <div className="flex flex-col">
             <div 
-              className="p-12 md:p-24 text-center flex flex-col items-center justify-center" 
-              style={{ backgroundColor: BRAND.black }}
+              className="p-8 md:p-16 text-center flex flex-col items-center justify-center bg-white rounded-t-[32px]" 
             >
-              <div className="flex flex-col items-center gap-1">
-                <h1 className="text-4xl font-black tracking-tight md:text-6xl uppercase text-white">
-                  QUESOS Y LÁCTEOS
-                </h1>
-                <h2 className="text-4xl font-black tracking-tight md:text-6xl uppercase">
-                  <span className="text-[#FFCC00]">VENE</span>
-                  <span className="text-[#3377FF]">ZOLA</span>
-                  <span className="text-[#EF233C]">NOS</span>
-                </h2>
+              <div className="relative w-full max-w-2xl flex justify-center">
+                <img 
+                  src="/logo.png" 
+                  alt="Queso Pa' Bueno Venezolano" 
+                  className="w-full h-auto max-h-[300px] object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300"
+                />
               </div>
             </div>
 
