@@ -171,58 +171,64 @@ function SectionTitle({
 function ProductCard({
   product,
   onAdd,
+  cartQty = 0,
 }: {
   product: Product;
   onAdd: (p: Product) => void;
+  cartQty?: number;
 }) {
+  const scrollToCart = () => {
+    document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <div className="transition-transform duration-150 hover:-translate-y-1">
-      <Card className="overflow-hidden rounded-3xl border-zinc-200 bg-white shadow-sm">
-        <div className="aspect-[4/3] overflow-hidden bg-zinc-100">
+    <div className="transition-transform duration-150 hover:-translate-y-1 h-full">
+      <Card className="overflow-hidden rounded-[24px] border-zinc-200 bg-white shadow-sm h-full flex flex-col relative group">
+        <div className="aspect-[4/3] overflow-hidden bg-zinc-100 shrink-0 relative">
           <img
             src={product.image || DEFAULT_PRODUCT_IMAGE}
             alt={product.name}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-        </div>
-        <CardContent className="space-y-4 p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-base font-semibold text-zinc-900">
-                {product.name}
-              </h3>
-              <p className="text-sm text-zinc-500">Venta por {product.unit}</p>
-            </div>
-            {product.promo ? (
-              <Badge
-                className="rounded-full border-0 text-zinc-900"
-                style={{ backgroundColor: BRAND.yellow }}
-              >
+          {product.promo ? (
+            <div className="absolute top-2 right-2">
+              <Badge className="rounded-full border-0 text-[11px] px-3 py-1 text-zinc-900 shadow-md font-bold tracking-wide uppercase" style={{ backgroundColor: BRAND.yellow }}>
                 Promo
               </Badge>
-            ) : null}
+            </div>
+          ) : null}
+        </div>
+        <CardContent className="space-y-3 p-4 flex flex-col flex-1">
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-zinc-900 leading-tight line-clamp-2 title-min-h">
+              {product.name}
+            </h3>
+            <p className="text-xs font-medium text-zinc-500 mt-1 capitalize">Por {product.unit}</p>
           </div>
 
-          <div className="flex flex-col gap-3 pt-2">
+          <div className="flex flex-col gap-2 pt-2 mt-auto border-t border-zinc-100">
             <div className="flex items-center justify-between">
-              <p className="text-xl font-bold text-zinc-900">
+              <p className="text-lg font-black text-zinc-900 leading-none">
                 {money(product.price)}
               </p>
-              <p className="text-xs uppercase font-medium tracking-wider text-zinc-500">x {product.unit}</p>
             </div>
             {product.available ? (
-              <Button
-                className="w-full rounded-xl py-6 text-base font-bold text-white shadow-sm transition-all hover:scale-[1.02]"
-                style={{ backgroundColor: BRAND.red }}
-                onClick={() => onAdd(product)}
-              >
-                AGREGAR
-              </Button>
+              <div className="flex flex-col gap-1 mt-1">
+                <Button
+                  className={`w-full rounded-[16px] py-5 text-sm font-bold text-white shadow-sm transition-all hover:scale-[1.02] ${cartQty > 0 ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}
+                  style={cartQty === 0 ? { backgroundColor: BRAND.red } : undefined}
+                  onClick={() => onAdd(product)}
+                >
+                  {cartQty > 0 ? `AGREGADO (${cartQty}) +` : "AGREGAR"}
+                </Button>
+                <div className={`transition-all duration-300 overflow-hidden flex justify-center ${cartQty > 0 ? 'h-auto opacity-100 pt-1' : 'h-0 opacity-0'}`}>
+                  <Button variant="ghost" size="sm" onClick={scrollToCart} className="text-[11px] h-auto py-1 px-3 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full font-medium tracking-wide">
+                    Ir al carrito →
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <Badge
-                variant="outline"
-                className="w-full justify-center rounded-xl py-3 text-base border-zinc-300 text-zinc-500"
-              >
+              <Badge variant="outline" className="w-full justify-center rounded-[16px] py-2.5 mt-1 text-sm border-zinc-300 text-zinc-500 font-medium">
                 Agotado
               </Badge>
             )}
@@ -234,7 +240,6 @@ function ProductCard({
 }
 
 export default function Page() {
-  const [category, setCategory] = useState<Category>("Quesos");
   const [products, setProducts] = useState<Product[]>(sampleProductsFromFile);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [dbLoading, setDbLoading] = useState(true);
@@ -331,9 +336,14 @@ export default function Page() {
     };
   }, []);
 
-  const filteredProducts = useMemo(
-    () => products.filter((p) => p.category === category),
-    [products, category]
+  const regularProducts = useMemo(
+    () => products.filter((p) => p.category !== "Promociones"),
+    [products]
+  );
+
+  const promoProducts = useMemo(
+    () => products.filter((p) => p.category === "Promociones"),
+    [products]
   );
 
   const cartTotal = useMemo(
@@ -630,50 +640,41 @@ export default function Page() {
                   </div>
                 ) : null}
 
-                <Tabs
-                  value={category}
-                  onValueChange={(value) => setCategory(value as Category)}
-                  className="mt-6"
-                >
-                  <TabsList className="grid w-full grid-cols-3 gap-2 bg-zinc-100 p-2 rounded-3xl h-auto">
-                    <TabsTrigger 
-                      value="Quesos" 
-                      className="w-full rounded-2xl py-3 text-sm md:text-lg font-bold data-[state=active]:bg-[#D84A2B] data-[state=active]:text-white data-[state=active]:shadow-xl shadow-sm transition-all"
-                    >
-                      Quesos
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="Lácteos / cremas / suero"
-                      className="w-full rounded-2xl py-3 text-sm md:text-lg font-bold data-[state=active]:bg-[#D84A2B] data-[state=active]:text-white data-[state=active]:shadow-xl shadow-sm transition-all"
-                    >
-                      Lácteos y Suero
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="Promociones"
-                      className="w-full rounded-2xl py-3 text-sm md:text-lg font-bold data-[state=active]:bg-[#E7D02A] data-[state=active]:text-black data-[state=active]:shadow-xl shadow-sm transition-all"
-                    >
-                      Promociones
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value={category} className="mt-6">
-                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                      {filteredProducts.map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          onAdd={addToCart}
-                        />
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <div className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-3">
+                  {regularProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAdd={addToCart}
+                      cartQty={cart.find(c => c.id === product.id)?.qty}
+                    />
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          <div id="checkout-section" className="space-y-6 md:pb-0 pb-24">
-            <Card className="sticky top-6 rounded-[28px] border-zinc-200 bg-white shadow-sm">
+          <div id="checkout-section" className="space-y-6 md:pb-0 pb-24 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:-mr-2 lg:pr-2 lg:pb-6" style={{ scrollbarWidth: "none" }}>
+            
+            {promoProducts.length > 0 && (
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-lg overflow-hidden shrink-0 border-2" style={{ borderColor: BRAND.yellow }}>
+                <div className="p-4 text-center transition-colors hover:brightness-105" style={{ backgroundColor: BRAND.yellow }}>
+                  <h3 className="font-black text-black text-lg lg:text-xl tracking-tight">⭐ PROMOCIONES ⭐</h3>
+                </div>
+                <div className="p-4 grid gap-4 grid-cols-2 lg:grid-cols-1 bg-zinc-50/50">
+                  {promoProducts.map((product) => (
+                     <ProductCard
+                       key={product.id}
+                       product={product}
+                       onAdd={addToCart}
+                       cartQty={cart.find(c => c.id === product.id)?.qty}
+                     />
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm shrink-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <ShoppingCart className="h-5 w-5" />
