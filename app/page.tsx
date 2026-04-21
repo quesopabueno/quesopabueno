@@ -627,25 +627,15 @@ export default function Page() {
               className="flex flex-col md:flex-row justify-center gap-4 p-6 md:p-8 w-full"
               style={{ backgroundColor: BRAND.black }}
             >
-              <div 
-                className="rounded-2xl border flex-1 min-w-[200px] p-4 text-center text-zinc-100 shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-center gap-1 hover:scale-[1.02] hover:bg-zinc-700 bg-zinc-800 border-zinc-700"
-                onClick={() => {
-                  if (clientSignedIn) {
-                    document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  } else {
-                    openRegister();
-                  }
-                }}
-              >
-                {clientSignedIn ? (
-                  <p className="text-xl font-bold tracking-tight">Haz tu pedido</p>
-                ) : (
-                  <>
+                {!clientSignedIn && (
+                  <div 
+                    className="rounded-2xl border flex-1 min-w-[200px] p-4 text-center text-zinc-100 shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-center gap-1 hover:scale-[1.02] hover:bg-zinc-700 bg-zinc-800 border-zinc-700"
+                    onClick={() => openRegister()}
+                  >
                     <p className="text-sm tracking-wide text-white/90">Regístrate o inicia sesión</p>
                     <p className="text-xl font-bold tracking-tight">Haz tu pedido</p>
-                  </>
+                  </div>
                 )}
-              </div>
               <MiniInfoCard
                 title="Entregas"
                 value="Sábado o Domingo"
