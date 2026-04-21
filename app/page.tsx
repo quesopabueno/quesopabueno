@@ -173,14 +173,17 @@ function ProductCard({
   onAdd,
   onUpdateQty,
   cartQty = 0,
+  onNavigateToCheckout,
 }: {
   product: Product;
   onAdd: (p: Product) => void;
   onUpdateQty: (id: number, delta: number) => void;
   cartQty?: number;
+  onNavigateToCheckout?: () => void;
 }) {
   const scrollToConfirm = () => {
-    document.getElementById("confirm-order-btn")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (onNavigateToCheckout) onNavigateToCheckout();
+    setTimeout(() => document.getElementById("confirm-order-btn")?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
   };
 
   return (
@@ -244,8 +247,8 @@ function ProductCard({
                         +
                       </Button>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={scrollToConfirm} className="text-[12px] h-auto py-1 px-3 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full font-medium tracking-wide">
-                      Ir a confirmar pedido →
+                    <Button variant="outline" size="sm" onClick={scrollToConfirm} className="w-full text-[12px] h-auto py-2.5 mt-1 text-zinc-700 hover:text-white hover:bg-zinc-800 transition-colors uppercase tracking-widest font-bold border-zinc-300">
+                      Confirmar pedido
                     </Button>
                   </div>
                 )}
@@ -846,8 +849,8 @@ export default function Page() {
         <>
           <button
             onClick={() => setPromoOpen(true)}
-            className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-40 animate-bounce shadow-[0_8px_30px_rgb(0,0,0,0.18)] rounded-full px-5 py-4 text-white font-black text-sm flex items-center gap-2 hover:scale-105 transition-transform"
-            style={{ backgroundColor: BRAND.red }}
+            className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-40 animate-bounce shadow-[0_8px_30px_rgb(0,0,0,0.25)] rounded-full px-5 py-4 text-zinc-900 font-extrabold text-sm flex items-center gap-2 hover:scale-105 transition-transform"
+            style={{ backgroundColor: BRAND.yellow }}
           >
             <span className="text-xl">🔥</span> PROMOCIONES
           </button>
@@ -866,6 +869,7 @@ export default function Page() {
                        onAdd={addToCart}
                        onUpdateQty={updateQty}
                        cartQty={cart.find((c) => c.id === product.id)?.qty}
+                       onNavigateToCheckout={() => setPromoOpen(false)}
                      />
                    </div>
                 ))}
