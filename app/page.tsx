@@ -417,7 +417,7 @@ export default function Page() {
       }));
 
       await createOrder({
-        customer_id: user!.id,
+        customer_id: profile.id,
         customer_name_snapshot: profile.full_name || "Cliente Sin Nombre",
         customer_phone_snapshot: profile.phone || "Sin Teléfono",
         address_snapshot: `${profile.street_address || ""} ${profile.house_or_apt || ""} - CP: ${profile.zip_code || ""}`.trim(),
