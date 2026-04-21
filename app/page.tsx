@@ -247,7 +247,7 @@ function ProductCard({
                         +
                       </Button>
                     </div>
-                    <Button variant="outline" size="sm" onClick={scrollToConfirm} className="w-full text-[12px] h-auto py-2.5 mt-1 text-zinc-700 hover:text-white hover:bg-zinc-800 transition-colors uppercase tracking-widest font-bold border-zinc-300">
+                    <Button variant="outline" size="sm" onClick={scrollToConfirm} className="w-full text-[12px] h-auto py-2.5 mt-1 text-white hover:text-white bg-zinc-800 hover:bg-black transition-colors uppercase tracking-widest font-bold border-0 shadow-md">
                       Confirmar pedido
                     </Button>
                   </div>
