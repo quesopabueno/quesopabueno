@@ -16,10 +16,20 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.quesopabueno.com"),
   title: "Queso Pa' Bueno",
-  description: "Logística y venta de quesos artesanales",
+  description: "El auténtico sabor venezolano, del llano a tu mesa. Pide aquí tus quesos frescos artesanales.",
   icons: {
     icon: "/logo.png",
+  },
+  openGraph: {
+    title: "Queso Pa' Bueno",
+    description: "El auténtico sabor venezolano, del llano a tu mesa. Pide aquí tus quesos.",
+    url: "https://www.quesopabueno.com",
+    siteName: "Queso Pa' Bueno",
+    images: ["/logo.png"],
+    locale: "es_US",
+    type: "website",
   },
   verification: {
     google: "GfK7WExXzax1dO4V_fJ91XbECh1S8ayFnyZDVWB1p74",
