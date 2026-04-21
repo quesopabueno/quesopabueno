@@ -416,8 +416,7 @@ export default function Page() {
         quantity: item.qty
       }));
 
-      await createOrder({
-        customer_id: profile.id,
+      const baseInput = {
         customer_name_snapshot: profile.full_name || "Cliente Sin Nombre",
         customer_phone_snapshot: profile.phone || "Sin Teléfono",
         address_snapshot: `${profile.street_address || ""} ${profile.house_or_apt || ""} - CP: ${profile.zip_code || ""}`.trim(),
@@ -426,7 +425,26 @@ export default function Page() {
         total: cartTotal,
         customer_notes: [profile.notes, notes.trim()].filter(Boolean).join(" | ") || undefined,
         items: itemsInput,
-      });
+      };
+
+      let insertSuccess = false;
+      let lastErr = null;
+
+      const potentialIds = Array.from(new Set([profile.id, profile.auth_user_id, user!.id].filter(Boolean)));
+
+      for (const cid of potentialIds) {
+        try {
+          await createOrder({ ...baseInput, customer_id: cid });
+          insertSuccess = true;
+          break;
+        } catch (e: any) {
+          lastErr = e;
+        }
+      }
+
+      if (!insertSuccess) {
+         throw lastErr || new Error("Error desconocido guardando pedido.");
+      }
 
       setCart([]);
       setNotes("");
