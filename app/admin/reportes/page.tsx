@@ -3,11 +3,12 @@
 import { adminSupabase as supabase } from "@/lib/supabase";
 import { getAdminOrders, type OrderStatus, type PaymentStatus } from "@/lib/orders";
 import { optimizeRoute } from "@/lib/googleMaps";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import type { Session } from "@supabase/supabase-js";
 import Link from "next/link";
+import Script from "next/script";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer, Map as MapIcon, Truck } from "lucide-react";
+import { ArrowLeft, Printer, Map as MapIcon, Truck, LocateFixed } from "lucide-react";
 
 type PrintOrder = {
   id: string;
@@ -38,6 +39,64 @@ export default function ReportesPage() {
   const [dispatchMsg, setDispatchMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [dispatchedRoute, setDispatchedRoute] = useState<PrintOrder[] | null>(null);
+
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+  const originInputRef = useRef<HTMLInputElement>(null);
+  const destinationInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!mapsLoaded || !(window as any).google) return;
+    
+    let originAutocomplete: any;
+    let destAutocomplete: any;
+
+    if (originInputRef.current) {
+        originAutocomplete = new (window as any).google.maps.places.Autocomplete(originInputRef.current);
+        originAutocomplete.addListener("place_changed", () => {
+           const place = originAutocomplete.getPlace();
+           if (place.formatted_address) setOrigin(place.formatted_address);
+        });
+    }
+    
+    if (destinationInputRef.current) {
+        destAutocomplete = new (window as any).google.maps.places.Autocomplete(destinationInputRef.current);
+        destAutocomplete.addListener("place_changed", () => {
+           const place = destAutocomplete.getPlace();
+           if (place.formatted_address) setDestination(place.formatted_address);
+        });
+    }
+  }, [mapsLoaded]);
+
+  const handleCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Tu navegador no soporta GPS.");
+      return;
+    }
+    setOrigin("Buscando señal GPS...");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        if ((window as any).google) {
+           const geocoder = new (window as any).google.maps.Geocoder();
+           geocoder.geocode({ location: { lat, lng } }, (results: any, status: string) => {
+             if (status === "OK" && results && results[0]) {
+               setOrigin(results[0].formatted_address);
+               if (originInputRef.current) originInputRef.current.value = results[0].formatted_address;
+             } else {
+               setOrigin(`${lat}, ${lng}`);
+             }
+           });
+        } else {
+           setOrigin(`${lat}, ${lng}`);
+        }
+      },
+      (error) => {
+        alert("Error obteniendo ubicación: " + error.message);
+        setOrigin("");
+      }
+    );
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -180,6 +239,11 @@ export default function ReportesPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-black">
+      <Script 
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        strategy="lazyOnload"
+        onLoad={() => setMapsLoaded(true)}
+      />
       
       {/* ===== VISTA DE SELECCIÓN Y CONFIGURACIÓN DE RUTA ===== */}
       {!dispatchedRoute && (
@@ -234,17 +298,28 @@ export default function ReportesPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-blue-600 mb-1 uppercase">1. Dirección de Origen (Punto de Salida)</label>
-                    <input 
-                      type="text" 
-                      value={origin}
-                      onChange={(e) => setOrigin(e.target.value)}
-                      className="w-full border-2 border-blue-200 rounded p-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
-                      placeholder="Ej: 123 Almacén St, Orlando..."
-                    />
+                    <div className="relative">
+                      <input 
+                        ref={originInputRef}
+                        type="text" 
+                        value={origin}
+                        onChange={(e) => setOrigin(e.target.value)}
+                        className="w-full border-2 border-blue-200 rounded p-3 pr-10 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                        placeholder="Ej: 123 Almacén St..."
+                      />
+                      <button 
+                        onClick={handleCurrentLocation}
+                        title="Usar mi ubicación actual"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <LocateFixed className="w-5 h-5"/>
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-blue-600 mb-1 uppercase">2. Dirección de Destino Final (Donde terminará su turno)</label>
                     <input 
+                      ref={destinationInputRef}
                       type="text" 
                       value={destination}
                       onChange={(e) => setDestination(e.target.value)}
