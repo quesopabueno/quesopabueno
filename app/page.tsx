@@ -171,18 +171,20 @@ function SectionTitle({
 function ProductCard({
   product,
   onAdd,
+  onUpdateQty,
   cartQty = 0,
 }: {
   product: Product;
   onAdd: (p: Product) => void;
+  onUpdateQty: (id: number, delta: number) => void;
   cartQty?: number;
 }) {
-  const scrollToCart = () => {
-    document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const scrollToConfirm = () => {
+    document.getElementById("confirm-order-btn")?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   return (
-    <div className="transition-transform duration-150 hover:-translate-y-1 h-full">
+    <div className="transition-transform duration-150 hover:-translate-y-1 h-full w-full">
       <Card className="overflow-hidden rounded-[24px] border-zinc-200 bg-white shadow-sm h-full flex flex-col relative group">
         <div className="aspect-[4/3] overflow-hidden bg-zinc-100 shrink-0 relative">
           <img
@@ -200,7 +202,7 @@ function ProductCard({
         </div>
         <CardContent className="space-y-3 p-4 flex flex-col flex-1">
           <div className="flex-1">
-            <h3 className="text-sm font-bold text-zinc-900 leading-tight line-clamp-2 title-min-h">
+            <h3 className="text-sm font-bold text-zinc-900 leading-tight line-clamp-2 min-h-[40px]">
               {product.name}
             </h3>
             <p className="text-xs font-medium text-zinc-500 mt-1 capitalize">Por {product.unit}</p>
@@ -214,18 +216,39 @@ function ProductCard({
             </div>
             {product.available ? (
               <div className="flex flex-col gap-1 mt-1">
-                <Button
-                  className={`w-full rounded-[16px] py-5 text-sm font-bold text-white shadow-sm transition-all hover:scale-[1.02] ${cartQty > 0 ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}
-                  style={cartQty === 0 ? { backgroundColor: BRAND.red } : undefined}
-                  onClick={() => onAdd(product)}
-                >
-                  {cartQty > 0 ? `AGREGADO (${cartQty}) +` : "AGREGAR"}
-                </Button>
-                <div className={`transition-all duration-300 overflow-hidden flex justify-center ${cartQty > 0 ? 'h-auto opacity-100 pt-1' : 'h-0 opacity-0'}`}>
-                  <Button variant="ghost" size="sm" onClick={scrollToCart} className="text-[11px] h-auto py-1 px-3 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full font-medium tracking-wide">
-                    Ir al carrito →
+                {cartQty === 0 ? (
+                  <Button
+                    className="w-full rounded-[16px] py-5 text-sm font-bold text-white shadow-sm transition-all hover:scale-[1.02]"
+                    style={{ backgroundColor: BRAND.red }}
+                    onClick={() => onAdd(product)}
+                  >
+                    AGREGAR
                   </Button>
-                </div>
+                ) : (
+                  <div className="flex flex-col gap-2 animate-in fade-in zoom-in duration-200">
+                    <div className="flex items-center justify-between rounded-[16px] border border-zinc-200 bg-zinc-50 p-1 shadow-inner text-zinc-800">
+                      <Button
+                        variant="ghost"
+                        onClick={() => onUpdateQty(product.id, -1)}
+                        className="h-10 w-12 rounded-xl text-xl font-medium hover:bg-zinc-200 text-zinc-700"
+                      >
+                        -
+                      </Button>
+                      <span className="font-bold text-base w-8 text-center">{cartQty}</span>
+                      <Button
+                        variant="ghost"
+                        onClick={() => onUpdateQty(product.id, 1)}
+                        className="h-10 w-12 rounded-xl text-lg font-bold text-white shadow-sm hover:scale-105 transition-transform"
+                        style={{ backgroundColor: BRAND.red }}
+                      >
+                        +
+                      </Button>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={scrollToConfirm} className="text-[12px] h-auto py-1 px-3 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full font-medium tracking-wide">
+                      Ir a confirmar pedido →
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <Badge variant="outline" className="w-full justify-center rounded-[16px] py-2.5 mt-1 text-sm border-zinc-300 text-zinc-500 font-medium">
