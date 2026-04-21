@@ -255,6 +255,7 @@ export default function Page() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [orderSuccessMsg, setOrderSuccessMsg] = useState("");
+  const [promoOpen, setPromoOpen] = useState(false);
 
   const resetAuthPanel = () => {
     setAuthTab("login");
@@ -640,14 +641,16 @@ export default function Page() {
                   </div>
                 ) : null}
 
-                <div className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <div className="mt-6 grid gap-8 grid-cols-1 place-items-center">
                   {regularProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAdd={addToCart}
-                      cartQty={cart.find(c => c.id === product.id)?.qty}
-                    />
+                    <div key={product.id} className="w-full max-w-sm">
+                      <ProductCard
+                        product={product}
+                        onAdd={addToCart}
+                        onUpdateQty={updateQty}
+                        cartQty={cart.find(c => c.id === product.id)?.qty}
+                      />
+                    </div>
                   ))}
                 </div>
               </CardContent>
@@ -655,25 +658,6 @@ export default function Page() {
           </div>
 
           <div id="checkout-section" className="space-y-6 md:pb-0 pb-24 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:-mr-2 lg:pr-2 lg:pb-6" style={{ scrollbarWidth: "none" }}>
-            
-            {promoProducts.length > 0 && (
-              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-lg overflow-hidden shrink-0 border-2" style={{ borderColor: BRAND.yellow }}>
-                <div className="p-4 text-center transition-colors hover:brightness-105" style={{ backgroundColor: BRAND.yellow }}>
-                  <h3 className="font-black text-black text-lg lg:text-xl tracking-tight">⭐ PROMOCIONES ⭐</h3>
-                </div>
-                <div className="p-4 grid gap-4 grid-cols-2 lg:grid-cols-1 bg-zinc-50/50">
-                  {promoProducts.map((product) => (
-                     <ProductCard
-                       key={product.id}
-                       product={product}
-                       onAdd={addToCart}
-                       cartQty={cart.find(c => c.id === product.id)?.qty}
-                     />
-                  ))}
-                </div>
-              </Card>
-            )}
-
             <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm shrink-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -798,6 +782,7 @@ export default function Page() {
                 </div>
 
                 <Button
+                  id="confirm-order-btn"
                   className="w-full rounded-2xl py-6 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   style={{ backgroundColor: BRAND.red }}
                   onClick={tryCheckout}
@@ -833,6 +818,39 @@ export default function Page() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {promoProducts.length > 0 && (
+        <>
+          <button
+            onClick={() => setPromoOpen(true)}
+            className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-40 animate-bounce shadow-[0_8px_30px_rgb(0,0,0,0.18)] rounded-full px-5 py-4 text-white font-black text-sm flex items-center gap-2 hover:scale-105 transition-transform"
+            style={{ backgroundColor: BRAND.red }}
+          >
+            <span className="text-xl">🔥</span> PROMOCIONES
+          </button>
+
+          <Dialog open={promoOpen} onOpenChange={setPromoOpen}>
+            <DialogContent className="rounded-[28px] border-0 p-0 sm:max-w-md max-h-[85vh] overflow-y-auto bg-white shadow-2xl">
+              <div className="p-6 text-center shadow-sm" style={{ backgroundColor: BRAND.yellow }}>
+                <h3 className="font-black text-black text-2xl tracking-tight">⭐ OFERTAS ⭐</h3>
+                <p className="text-zinc-800 text-sm mt-1 font-medium">Lleva estos productos y aprovecha</p>
+              </div>
+              <div className="p-6 grid gap-6 grid-cols-1 place-items-center bg-zinc-50/50">
+                {promoProducts.map((product) => (
+                   <div key={product.id} className="w-full">
+                     <ProductCard
+                       product={product}
+                       onAdd={addToCart}
+                       onUpdateQty={updateQty}
+                       cartQty={cart.find((c) => c.id === product.id)?.qty}
+                     />
+                   </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }
