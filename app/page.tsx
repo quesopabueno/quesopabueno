@@ -10,7 +10,7 @@ import ClientRegisterForm from "@/components/ClientRegisterForm";
 import ClientLoginForm from "@/components/ClientLoginForm";
 import ClientProfile from "@/components/ClientProfile";
 
-import { ShoppingCart, Package, User, MessageCircle } from "lucide-react";
+import { ShoppingCart, Package, User, MessageCircle, LogOut } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -291,7 +291,15 @@ export default function Page() {
   const closeAuthPanel = () => {
     setAuthDialogOpen(false);
     resetAuthPanel();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    
+    // Si hay cosas en el carrito, te llevo directo a pagar. Si no, al principio.
+    if (cart.length > 0) {
+      setTimeout(() => {
+        document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 400);
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const switchAuthPanelToLogin = () => {
@@ -500,7 +508,32 @@ export default function Page() {
 
   return (
     <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,_#fffdf8,_#f7f1e6_45%,_#efe7da_100%)] text-zinc-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8 relative">
+        {clientSignedIn && (
+          <div className="absolute top-4 right-4 z-50 flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full bg-white/80 backdrop-blur-sm border-zinc-200 shadow-sm"
+              onClick={() => setProfileOpen(true)}
+            >
+              <User className="mr-2 h-4 w-4" />
+              Mi Perfil
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700 bg-white/80 backdrop-blur-sm border border-zinc-200 shadow-sm"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                setProfileOpen(false);
+              }}
+              title="Cerrar sesión"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <div className="mb-4" />
 
         {authDialogOpen && !clientSignedIn ? (
