@@ -637,8 +637,14 @@ export default function Page() {
                   }
                 }}
               >
-                <p className="text-sm tracking-wide text-white/90">Regístrate o inicia sesión</p>
-                <p className="text-xl font-bold tracking-tight">Haz tu pedido</p>
+                {clientSignedIn ? (
+                  <p className="text-xl font-bold tracking-tight">Haz tu pedido</p>
+                ) : (
+                  <>
+                    <p className="text-sm tracking-wide text-white/90">Regístrate o inicia sesión</p>
+                    <p className="text-xl font-bold tracking-tight">Haz tu pedido</p>
+                  </>
+                )}
               </div>
               <MiniInfoCard
                 title="Entregas"
