@@ -436,7 +436,7 @@ export default function Page() {
       }, 50);
       setTimeout(() => setOrderSuccessMsg(""), 4000);
     } catch (err: any) {
-      alert("Hubo un error al procesar el pedido: " + err.message);
+      alert("DEBUG (" + String(clientSession?.user?.id).substring(0, 5) + "): Hubo un error al procesar el pedido: " + err.message);
     } finally {
       setCheckoutLoading(false);
     }
