@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     description: "El auténtico sabor venezolano, del llano a tu mesa. Pide aquí tus quesos.",
     url: "https://www.quesopabueno.com",
     siteName: "Queso Pa' Bueno",
-    images: ["/logo.png"],
+    images: [{ url: "https://www.quesopabueno.com/logo.png", width: 800, height: 600, alt: "Queso Pa Bueno Logo" }],
     locale: "es_US",
     type: "website",
   },
