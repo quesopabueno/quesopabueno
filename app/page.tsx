@@ -612,7 +612,7 @@ export default function Page() {
         <Card className="mb-6 overflow-hidden rounded-[32px] border-0 shadow-2xl">
           <div className="flex flex-col">
             <div 
-              className="p-8 md:p-16 text-center flex flex-col items-center justify-center bg-white rounded-t-[32px]" 
+              className="p-8 md:p-16 text-center flex flex-col items-center justify-center bg-black rounded-t-[32px]" 
             >
               <div className="relative w-full max-w-2xl flex justify-center">
                 <img 
@@ -628,8 +628,7 @@ export default function Page() {
               style={{ backgroundColor: BRAND.black }}
             >
               <div 
-                className="rounded-2xl border flex-1 min-w-[200px] p-4 text-center text-white shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-center gap-1 hover:scale-[1.02] hover:brightness-110"
-                style={{ backgroundColor: BRAND.red, borderColor: BRAND.red }}
+                className="rounded-2xl border flex-1 min-w-[200px] p-4 text-center text-zinc-100 shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-center gap-1 hover:scale-[1.02] hover:bg-zinc-700 bg-zinc-800 border-zinc-700"
                 onClick={() => {
                   if (clientSignedIn) {
                     document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -643,7 +642,7 @@ export default function Page() {
               </div>
               <MiniInfoCard
                 title="Entregas"
-                value="Sábado - Domingo"
+                value="Sábado o Domingo"
               />
             </div>
           </div>
@@ -884,9 +883,9 @@ export default function Page() {
 
 function MiniInfoCard({ title, value, href }: { title: string; value: string; href?: string }) {
   const content = (
-    <div className={`rounded-2xl border p-4 text-center text-white shadow-lg flex-1 min-w-[200px] transition-all duration-300 ${href ? 'bg-[#25D366] border-[#25D366] hover:bg-[#128C7E] hover:border-[#128C7E] hover:scale-[1.02] cursor-pointer' : 'border-white/10 bg-white/5'}`}>
-      <p className={`text-sm tracking-wide ${href ? 'text-white font-semibold' : 'text-zinc-300'}`}>{title}</p>
-      <p className="mt-1 text-xl font-bold tracking-tight">{value}</p>
+    <div className={`rounded-2xl border p-4 text-center text-zinc-100 shadow-lg flex-1 min-w-[200px] transition-all duration-300 ${href ? 'bg-[#25D366] border-[#25D366] hover:bg-[#128C7E] hover:border-[#128C7E] hover:scale-[1.02] cursor-pointer' : 'bg-zinc-800 border-zinc-700'}`}>
+      <p className={`text-sm tracking-wide ${href ? 'text-white font-semibold' : 'text-zinc-400'}`}>{title}</p>
+      <p className={`mt-1 text-xl font-bold tracking-tight ${href ? 'text-white' : 'text-zinc-100'}`}>{value}</p>
     </div>
   );
 

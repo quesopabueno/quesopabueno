@@ -18,6 +18,9 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   title: "Queso Pa' Bueno",
   description: "Logística y venta de quesos artesanales",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({
