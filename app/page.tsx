@@ -612,7 +612,7 @@ export default function Page() {
         <Card className="mb-6 overflow-hidden rounded-[32px] border-0 shadow-2xl">
           <div className="flex flex-col">
             <div 
-              className="p-8 md:p-16 text-center flex flex-col items-center justify-center bg-black rounded-t-[32px]" 
+              className="p-8 md:p-16 text-center flex flex-col items-center justify-center bg-zinc-100 rounded-t-[32px]" 
             >
               <div className="relative w-full max-w-2xl flex justify-center">
                 <img 
