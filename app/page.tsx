@@ -291,6 +291,7 @@ export default function Page() {
   const closeAuthPanel = () => {
     setAuthDialogOpen(false);
     resetAuthPanel();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const switchAuthPanelToLogin = () => {
@@ -500,61 +501,10 @@ export default function Page() {
   return (
     <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,_#fffdf8,_#f7f1e6_45%,_#efe7da_100%)] text-zinc-900">
       <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              className="rounded-full border-0 px-4 py-1 text-sm text-zinc-900"
-              style={{ backgroundColor: BRAND.yellow }}
-            >
-              {BUSINESS.name}
-            </Badge>
-
-            {clientSignedIn ? (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  className="rounded-2xl"
-                  onClick={() => setProfileOpen(true)}
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Mi perfil
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="rounded-2xl text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    setProfileOpen(false);
-                  }}
-                >
-                  Cerrar sesión
-                </Button>
-              </div>
-            ) : null}
-          </div>
-
-          {!clientSignedIn ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                className="rounded-2xl"
-                onClick={openLogin}
-              >
-                Ingresar
-              </Button>
-              <Button
-                className="rounded-2xl text-white"
-                style={{ backgroundColor: BRAND.red }}
-                onClick={openRegister}
-              >
-                Regístrate
-              </Button>
-            </div>
-          ) : null}
-        </div>
+        <div className="mb-4" />
 
         {authDialogOpen && !clientSignedIn ? (
-          <Card className="mb-6 rounded-[28px] border-zinc-200 bg-white shadow-xl">
+          <Card className="mb-6 rounded-[28px] border-zinc-200 bg-white shadow-xl relative overflow-hidden">
             <CardContent className="p-5 md:p-6">
               <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-1">
@@ -571,10 +521,14 @@ export default function Page() {
 
                 <Button
                   variant="ghost"
-                  className="w-fit rounded-2xl text-zinc-500"
-                  onClick={closeAuthPanel}
+                  size="icon"
+                  className="absolute top-4 right-4 h-10 w-10 rounded-full hover:bg-zinc-100 text-zinc-500"
+                  onClick={() => {
+                    closeAuthPanel();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                 >
-                  Cerrar
+                  ✕
                 </Button>
               </div>
 
@@ -585,11 +539,11 @@ export default function Page() {
                   setAuthTab(value as "login" | "register")
                 }
               >
-                <TabsList className="mb-6 grid w-full grid-cols-2 rounded-2xl bg-zinc-100 p-1">
-                  <TabsTrigger value="login" className="rounded-2xl">
+                <TabsList className="mb-6 grid w-full grid-cols-2 rounded-2xl bg-zinc-200 p-1">
+                  <TabsTrigger value="login" className="rounded-2xl text-zinc-600 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
                     Ingresar
                   </TabsTrigger>
-                  <TabsTrigger value="register" className="rounded-2xl">
+                  <TabsTrigger value="register" className="rounded-2xl text-zinc-600 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
                     Regístrate
                   </TabsTrigger>
                 </TabsList>
