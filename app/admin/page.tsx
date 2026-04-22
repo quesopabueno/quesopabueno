@@ -893,7 +893,6 @@ export default function AdminPage() {
           </Tabs>
         )}
       </div>
-      </div>
 
       <Dialog open={Boolean(editingProduct)} onOpenChange={(open) => !open && setEditingProduct(null)}>
         <DialogContent className="rounded-[28px] border-0 sm:max-w-xl">
