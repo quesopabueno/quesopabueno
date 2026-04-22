@@ -614,20 +614,22 @@ export default function AdminPage() {
            </div>
         ) : (
           <Tabs defaultValue="pedidos" className="w-full">
-            <TabsList className="mb-8 grid h-auto w-full grid-cols-2 lg:grid-cols-4 rounded-[20px] bg-zinc-200/50 p-1">
-              <TabsTrigger value="pedidos" className="rounded-2xl py-6 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold text-lg">
-                <ClipboardList className="w-5 h-5 mr-3" /> Pedidos
+          <div className="flex justify-center mb-10">
+            <TabsList className="h-20 inline-flex items-center rounded-[32px] bg-zinc-200/60 p-2 gap-3 border border-zinc-300/50 shadow-sm">
+              <TabsTrigger value="pedidos" className="rounded-[24px] h-full px-8 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-base flex items-center gap-2">
+                <ClipboardList className="w-5 h-5" /> Pedidos
               </TabsTrigger>
-              <TabsTrigger value="productos" className="rounded-2xl py-6 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold text-lg">
-                <Plus className="w-5 h-5 mr-3" /> Productos
+              <TabsTrigger value="productos" className="rounded-[24px] h-full px-8 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-base flex items-center gap-2">
+                <Plus className="w-5 h-5" /> Productos
               </TabsTrigger>
-              <TabsTrigger value="clientes" className="rounded-2xl py-6 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold text-lg">
-                <Users className="w-5 h-5 mr-3" /> Clientes
+              <TabsTrigger value="clientes" className="rounded-[24px] h-full px-8 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-base flex items-center gap-2">
+                <Users className="w-5 h-5" /> Clientes
               </TabsTrigger>
-              <TabsTrigger value="entregas" className="rounded-2xl py-6 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold text-lg">
-                <Truck className="w-5 h-5 mr-3" /> Entregas
+              <TabsTrigger value="entregas" className="rounded-[24px] h-full px-8 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-base flex items-center gap-2">
+                <Truck className="w-5 h-5" /> Entregas
               </TabsTrigger>
             </TabsList>
+          </div>
 
             {/* TAB: PEDIDOS */}
             <TabsContent value="pedidos" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
