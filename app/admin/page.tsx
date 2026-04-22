@@ -5,7 +5,6 @@ import { getAdminOrders, updateOrderStatus, updateOrderPaymentStatus, type Order
 import { sampleProducts as sampleProductsFromFile } from "@/lib/mock-data";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import {
   Shield,
@@ -252,7 +251,7 @@ export default function AdminPage() {
         return {
           id: oNum.startsWith("QPB") ? oNum : `QPB-${oNum}`,
           db_id: o.id,
-          createdAt: o.created_at ? new Date(o.created_at).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) : '',
+          createdAt: o.created_at ? new Date(o.created_at).toISOString().split('T')[0] : '',
           customerName: o.customer_name_snapshot || "Desconocido",
           phone: o.customer_phone_snapshot || "-",
           address: o.address_snapshot || "-",
