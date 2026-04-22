@@ -16,6 +16,13 @@ export default function ClientLoginForm({
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("qpb_remembered_email");
+    if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, []);
+
   function mapLoginError(message: string) {
     const normalized = message.toLowerCase();
 
@@ -74,8 +81,7 @@ export default function ClientLoginForm({
         throw new Error("No se pudo iniciar la sesión correctamente.");
       }
 
-      setEmail("");
-      setPassword("");
+      localStorage.setItem("qpb_remembered_email", normalizedEmail);
       setSuccessMessage("Inicio de sesión correcto.");
       onLoggedIn?.();
     } catch (error) {

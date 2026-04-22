@@ -199,6 +199,7 @@ export default function ClientRegisterForm({
       resetForm();
 
       if (hasSession) {
+        localStorage.setItem("qpb_remembered_email", normalizedEmail);
         setSuccessMessage("Cuenta creada correctamente.");
         onRegistered?.();
         return;
