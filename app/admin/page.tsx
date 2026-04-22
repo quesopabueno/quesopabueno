@@ -19,7 +19,17 @@ import {
   MapPinned,
   Clock3,
   ArrowLeft,
+  Users,
+  Ban,
+  Search,
+  UserCheck
 } from "lucide-react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -185,6 +195,11 @@ export default function AdminPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [adminActionError, setAdminActionError] = useState<string | null>(null);
 
+  // Clientes State
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+
   const [savingProduct, setSavingProduct] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
@@ -298,6 +313,38 @@ export default function AdminPage() {
     setIsAdmin(adminMatch);
     if (adminMatch) {
       loadAdminOrders();
+      loadAdminCustomers();
+    }
+  };
+
+  const loadAdminCustomers = async () => {
+    setCustomersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("full_name", { ascending: true });
+      
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (e: any) {
+      console.error("Error loading customers:", e.message);
+    } finally {
+      setCustomersLoading(false);
+    }
+  };
+
+  const updateCustomerTag = async (customerId: string, tag: string | null) => {
+    try {
+      const { error } = await supabase
+        .from("customers")
+        .update({ notes: tag }) // Usamos notes temporalmente como "etiqueta/alerta" si no hay campo dedicado
+        .eq("id", customerId);
+      
+      if (error) throw error;
+      setCustomers(curr => curr.map(c => c.id === customerId ? { ...c, notes: tag } : c));
+    } catch (e: any) {
+      alert("Error actualizando cliente: " + e.message);
     }
   };
 
@@ -306,6 +353,10 @@ export default function AdminPage() {
 
     const bootstrap = async () => {
       await loadProductsFromSupabase();
+      
+      const savedAdminEmail = localStorage.getItem("qpb_admin_email");
+      if (savedAdminEmail) setAdminEmail(savedAdminEmail);
+
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
       await resolveAdminState(data.session ?? null);
@@ -347,6 +398,9 @@ export default function AdminPage() {
       setAuthError(error.message);
       return;
     }
+
+    localStorage.setItem("qpb_admin_email", adminEmail);
+    setAdminPassword("");
 
     setAdminPassword("");
   };
@@ -519,276 +573,326 @@ export default function AdminPage() {
           <AdminSummaryCard title="Venta acumulada demo" value={money(grossSales)} icon={<BarChart3 className="h-5 w-5" />} />
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-          {authLoading ? (
+        {!adminSignedIn ? (
+           <div className="max-w-md mx-auto mt-12">
             <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5" />
-                  Verificando sesión admin
-                </CardTitle>
-                <CardDescription>Esperando la sesión guardada del administrador.</CardDescription>
-              </CardHeader>
-            </Card>
-          ) : adminSignedIn ? (
-            <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Plus className="h-5 w-5" />
-                  Gestión de productos
-                </CardTitle>
-                <CardDescription>
-                  Esta sesión de administrador está separada de la sesión del cliente.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                  Sesión admin activa: {adminSession?.user?.email}
-                </div>
-
-                {adminActionError ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {adminActionError}
-                  </div>
-                ) : null}
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="grid gap-2 md:col-span-2">
-                    <Label>Nombre del producto</Label>
-                    <Input
-                      placeholder="Ejemplo: Mantequilla"
-                      value={adminDraft.name}
-                      onChange={(e) => setAdminDraft((d) => ({ ...d, name: e.target.value }))}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Categoría</Label>
-                    <Select
-                      value={adminDraft.category}
-                      onValueChange={(v) => setAdminDraft((d) => ({ ...d, category: v as Category }))}
-                    >
-                      <SelectTrigger className="rounded-2xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Quesos">Quesos</SelectItem>
-                        <SelectItem value="Lácteos / cremas / suero">Lácteos / cremas / suero</SelectItem>
-                        <SelectItem value="Promociones">Promociones</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Precio</Label>
-                    <Input
-                      placeholder="0.00"
-                      type="number"
-                      value={adminDraft.price}
-                      onChange={(e) => setAdminDraft((d) => ({ ...d, price: e.target.value }))}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Unidad</Label>
-                    <Select
-                      value={adminDraft.unit}
-                      onValueChange={(v) => setAdminDraft((d) => ({ ...d, unit: v as Unit }))}
-                    >
-                      <SelectTrigger className="rounded-2xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lb">lb</SelectItem>
-                        <SelectItem value="unidad">unidad</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2 md:col-span-2">
-                    <Label>Foto del producto (Opcional)</Label>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setAdminDraft((d) => ({ ...d, file: e.target.files?.[0] || null }))}
-                      className="rounded-2xl cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <Button
-                      className="w-full rounded-2xl text-white"
-                      style={{ backgroundColor: BRAND.red }}
-                      onClick={createProduct}
-                      disabled={savingProduct}
-                    >
-                      {savingProduct ? "Guardando..." : "Guardar producto"}
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Shield className="h-5 w-5" />
+                    Acceso administrativo
+                  </CardTitle>
+                  <CardDescription>
+                    Este login va en una página separada y usa una sesión distinta a la del cliente.
+                  </CardDescription>
+                </CardHeader>
+                  <form onSubmit={(e) => { e.preventDefault(); adminSignIn(); }} className="space-y-4 px-6 pb-6">
+                    <div className="grid gap-2">
+                      <Label htmlFor="admin-email">Correo</Label>
+                      <Input
+                        id="admin-email"
+                        type="email"
+                        value={adminEmail}
+                        onChange={(e) => setAdminEmail(e.target.value)}
+                        placeholder="quesopabueno@gmail.com"
+                        autoComplete="username"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="admin-password">Contraseña</Label>
+                      <Input
+                        id="admin-password"
+                        type="password"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        placeholder="Contraseña de Supabase Auth"
+                        autoComplete="current-password"
+                      />
+                    </div>
+                    {authError ? (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {authError}
+                      </div>
+                    ) : null}
+                    <Button type="submit" className="w-full rounded-2xl text-white" style={{ backgroundColor: BRAND.red }}>
+                      Iniciar sesión admin
                     </Button>
+                  </form>
+              </Card>
+           </div>
+        ) : (
+          <Tabs defaultValue="pedidos" className="w-full">
+            <TabsList className="mb-8 grid h-auto w-full grid-cols-2 lg:grid-cols-4 rounded-[20px] bg-zinc-200/50 p-1">
+              <TabsTrigger value="pedidos" className="rounded-2xl py-3 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
+                <ClipboardList className="w-4 h-4 mr-2" /> Pedidos
+              </TabsTrigger>
+              <TabsTrigger value="productos" className="rounded-2xl py-3 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
+                <Plus className="w-4 h-4 mr-2" /> Productos
+              </TabsTrigger>
+              <TabsTrigger value="clientes" className="rounded-2xl py-3 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
+                <Users className="w-4 h-4 mr-2" /> Clientes
+              </TabsTrigger>
+              <TabsTrigger value="entregas" className="rounded-2xl py-3 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
+                <Truck className="w-4 h-4 mr-2" /> Entregas
+              </TabsTrigger>
+            </TabsList>
+
+            {/* TAB: PEDIDOS */}
+            <TabsContent value="pedidos" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm overflow-hidden">
+                <CardHeader className="bg-zinc-50 border-b border-zinc-100">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <ClipboardList className="h-5 w-5 text-blue-600" /> Listado de Pedidos
+                  </CardTitle>
+                  <CardDescription>Gestiona los estados de envío y pago de cada orden.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 sm:p-6">
+                  <div className="space-y-4 mt-4">
+                    {ordersLoading ? (
+                       <div className="text-center py-12 text-zinc-500">Cargando pedidos...</div>
+                    ) : (
+                      orders.map((order) => (
+                        <div key={order.id} className="rounded-[22px] border border-zinc-200 p-5 shadow-sm hover:border-zinc-300 transition-colors bg-white mx-4 sm:mx-0">
+                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <p className="text-lg font-black text-zinc-900">{order.id}</p>
+                                <Badge variant="secondary" className="rounded-md font-medium text-[10px] uppercase tracking-wider">{order.createdAt}</Badge>
+                                
+                                <div className="flex gap-2">
+                                  <Select value={order.status} onValueChange={(v) => handleStatusChange(order.db_id, v as OrderStatus)}>
+                                    <SelectTrigger className={`h-8 rounded-full px-4 text-xs font-bold border transition-colors ${statusBadgeClass(order.status)}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {["Nuevo", "Confirmado", "En preparación", "En ruta", "Llegada", "Entregado"].map(s => (
+                                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+
+                                  <Select value={order.payment} onValueChange={(v) => handlePaymentChange(order.db_id, v as PaymentStatus)}>
+                                    <SelectTrigger className={`h-8 rounded-full px-4 text-xs font-bold border transition-colors ${statusBadgeClass(order.payment)}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {["Pendiente", "Parcial", "Cobrado"].map(p => (
+                                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              
+                              <p className="font-bold text-zinc-800">{order.customerName} <span className="text-zinc-400 font-normal ml-1">· {order.phone}</span></p>
+                              
+                              <div className="space-y-2 text-sm text-zinc-600">
+                                <p className="flex items-center gap-2"><MapPinned className="h-4 w-4 text-zinc-400" /> {order.address}</p>
+                                <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-zinc-400" /> {order.deliveryDay} · {order.deliveryWindow}</p>
+                              </div>
+                            </div>
+                            <div className="text-right border-t pt-4 md:border-0 md:pt-0">
+                                <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Monto Total</p>
+                                <p className="text-2xl font-black text-zinc-900">{money(order.total)}</p>
+                            </div>
+                          </div>
+                          <div className="mt-5 flex flex-wrap gap-2 border-t pt-4 border-zinc-100">
+                            {order.items.map((item, index) => (
+                              <Badge key={index} variant="outline" className="rounded-full border-zinc-200 bg-zinc-50/50 px-3 py-1 text-xs text-zinc-700">
+                                <span className="font-bold mr-1">{item.qty}{item.unit}</span> {item.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="flex justify-end">
-                  <Button variant="outline" className="rounded-2xl" onClick={adminSignOut}>
-                    Cerrar sesión admin
-                  </Button>
-                </div>
-
-                <Separator />
-
-                {dbLoading ? (
-                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-                    Cargando productos...
-                  </div>
-                ) : null}
-
-                {dbError ? (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    No se pudo leer Supabase. Se está mostrando el catálogo local.
-                  </div>
-                ) : null}
-
-                <div className="grid gap-3">
-                  {products.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between rounded-2xl border border-zinc-200 p-4">
-                      <div>
-                        <p className="font-semibold text-zinc-900">{product.name}</p>
-                        <p className="text-sm text-zinc-500">
-                          {product.category} · {money(product.price)} / {product.unit}
-                        </p>
+            {/* TAB: PRODUCTOS */}
+            <TabsContent value="productos" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
+                <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm h-fit sticky top-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Plus className="h-5 w-5 text-red-600" /> Agregar Producto
+                    </CardTitle>
+                    <CardDescription>Crea un nuevo ítem en el menú.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {adminActionError && (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{adminActionError}</div>
+                    )}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Nombre</Label>
+                        <Input placeholder="Ej: Queso de Mano" value={adminDraft.name} onChange={(e) => setAdminDraft(d => ({ ...d, name: e.target.value }))} />
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <Badge className="rounded-full border border-green-300 bg-green-100 text-green-800">
-                          Disponible
-                        </Badge>
-                        <Button variant="outline" size="icon" className="rounded-2xl" onClick={() => openEditDialog(product)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="rounded-2xl text-red-600 hover:text-red-700"
-                          onClick={() => deleteProduct(product)}
-                          disabled={deletingProductId === product.id}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Precio ($)</Label>
+                          <Input type="number" value={adminDraft.price} onChange={(e) => setAdminDraft(d => ({ ...d, price: e.target.value }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Unidad</Label>
+                          <Select value={adminDraft.unit} onValueChange={(v) => setAdminDraft(d => ({ ...d, unit: v as Unit }))}>
+                            <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                            <SelectContent><SelectItem value="lb">lb</SelectItem><SelectItem value="unidad">unidad</SelectItem></SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5" />
-                  Acceso administrador
-                </CardTitle>
-                <CardDescription>
-                  Este login va en una página separada y usa una sesión distinta a la del cliente.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-2">
-                  <Label>Correo</Label>
-                  <Input
-                    type="email"
-                    value={adminEmail}
-                    onChange={(e) => setAdminEmail(e.target.value)}
-                    placeholder="quesopabueno@gmail.com"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Contraseña</Label>
-                  <Input
-                    type="password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    placeholder="Contraseña de Supabase Auth"
-                  />
-                </div>
-                {authError ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {authError}
-                  </div>
-                ) : null}
-                <Button className="w-full rounded-2xl text-white" style={{ backgroundColor: BRAND.red }} onClick={adminSignIn}>
-                  Iniciar sesión admin
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-2 text-lg w-full">
-                <span className="flex items-center gap-2"><ClipboardList className="h-5 w-5" /> Pedidos y ruta de entrega</span>
-                <Button asChild variant="outline" size="sm" className="rounded-2xl h-8">
-                  <Link href="/admin/reportes">📄 Imprimir ticket</Link>
-                </Button>
-              </CardTitle>
-              <CardDescription>Vista operativa inicial del panel administrativo.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {orders.map((order) => (
-                <div key={order.id} className="rounded-3xl border border-zinc-200 p-4 shadow-sm">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-zinc-900">{order.id} <span className="text-xs font-normal text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md ml-1">{order.createdAt}</span></p>
-                        
-                        <Select value={order.status} onValueChange={(v) => handleStatusChange(order.db_id, v as OrderStatus)}>
-                          <SelectTrigger className={`h-7 rounded-full px-3 text-xs font-medium border ${statusBadgeClass(order.status)}`}>
-                            <SelectValue />
-                          </SelectTrigger>
+                      <div className="space-y-2">
+                        <Label>Categoría</Label>
+                        <Select value={adminDraft.category} onValueChange={(v) => setAdminDraft(d => ({ ...d, category: v as Category }))}>
+                          <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Nuevo">Nuevo</SelectItem>
-                            <SelectItem value="Confirmado">Confirmado</SelectItem>
-                            <SelectItem value="En preparación">En preparación</SelectItem>
-                            <SelectItem value="En ruta">En ruta</SelectItem>
-                            <SelectItem value="Llegada">Llegada</SelectItem>
-                            <SelectItem value="Entregado">Entregado</SelectItem>
+                            <SelectItem value="Quesos">Quesos</SelectItem>
+                            <SelectItem value="Lácteos / cremas / suero">Lácteos / cremas / suero</SelectItem>
+                            <SelectItem value="Promociones">Promociones</SelectItem>
                           </SelectContent>
                         </Select>
-                        
-                        <Select value={order.payment} onValueChange={(v) => handlePaymentChange(order.db_id, v as PaymentStatus)}>
-                          <SelectTrigger className={`h-7 rounded-full px-3 text-xs font-medium border ${statusBadgeClass(order.payment)}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Pendiente">Pendiente</SelectItem>
-                            <SelectItem value="Parcial">Parcial</SelectItem>
-                            <SelectItem value="Cobrado">Cobrado</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Foto (Opcional)</Label>
+                        <Input type="file" accept="image/*" onChange={(e) => setAdminDraft(d => ({ ...d, file: e.target.files?.[0] || null }))} className="cursor-pointer file:rounded-lg" />
+                      </div>
+                      <Button className="w-full rounded-xl text-white font-bold h-12" style={{ backgroundColor: BRAND.red }} onClick={createProduct} disabled={savingProduct}>
+                        {savingProduct ? "Guardando..." : "Crear Producto"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
 
+                <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm overflow-hidden">
+                  <div className="grid gap-3 p-6 sm:grid-cols-2 2xl:grid-cols-3">
+                    {dbLoading ? (
+                      <div className="col-span-full py-12 text-center text-zinc-400">Cargando inventario...</div>
+                    ) : products.map((product) => (
+                      <div key={product.id} className="group relative rounded-2xl border border-zinc-100 p-4 hover:border-zinc-300 transition-all bg-zinc-50/30">
+                        <div className="flex flex-col gap-3">
+                          <div className="aspect-video w-full rounded-xl overflow-hidden bg-zinc-200">
+                             <img src={product.image || 'https://via.placeholder.com/400x300'} className="w-full h-full object-cover" alt="" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-zinc-900 truncate">{product.name}</h4>
+                            <p className="text-xs text-zinc-500 font-medium">{product.category} · {money(product.price)}/{product.unit}</p>
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Button variant="outline" size="sm" className="flex-1 rounded-xl h-9" onClick={() => openEditDialog(product)}><Pencil className="w-3 h-3 mr-2" /> Editar</Button>
+                            <Button variant="outline" size="sm" className="rounded-xl h-9 text-red-600 hover:text-red-700" onClick={() => deleteProduct(product)}><Trash2 className="w-3 h-3" /></Button>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm text-zinc-700">{order.customerName} · {order.phone}</p>
-                      <div className="space-y-1 text-sm text-zinc-500">
-                        <p className="flex items-center gap-2">
-                          <MapPinned className="h-4 w-4" />
-                          {order.address}
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <Clock3 className="h-4 w-4" />
-                          {order.deliveryDay} · {order.deliveryWindow}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-zinc-500">Total</p>
-                      <p className="text-xl font-bold text-zinc-900">{money(order.total)}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {order.items.map((item, index) => (
-                      <Badge key={`${item.name}-${index}`} variant="outline" className="rounded-full border-zinc-300 bg-zinc-50">
-                        {item.qty} {item.unit} · {item.name}
-                      </Badge>
                     ))}
                   </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+                  <div className="p-6 border-t bg-zinc-50 flex justify-end">
+                     <Button variant="ghost" className="rounded-xl text-zinc-400 text-xs" onClick={adminSignOut}>Cerrar Sesión Administradora</Button>
+                  </div>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* TAB: CLIENTES */}
+            <TabsContent value="clientes" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm overflow-hidden">
+                <CardHeader className="bg-zinc-50 border-b border-zinc-100">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Users className="h-5 w-5 text-purple-600" /> Directorio de Clientes
+                      </CardTitle>
+                      <CardDescription>Identifica y gestiona el historial de tus compradores.</CardDescription>
+                    </div>
+                    <div className="relative max-w-sm w-full">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                      <Input 
+                        placeholder="Buscar por nombre o teléfono..." 
+                        className="pl-10 rounded-full bg-white"
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-zinc-400 font-bold uppercase text-[10px] tracking-widest">
+                          <th className="px-4 py-3 text-left">Cliente</th>
+                          <th className="px-4 py-3 text-left">Ubicación</th>
+                          <th className="px-4 py-3 text-left">Estado / Alerta</th>
+                          <th className="px-4 py-3 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100">
+                        {customersLoading ? (
+                           <tr><td colSpan={4} className="py-12 text-center text-zinc-400">Cargando base de datos...</td></tr>
+                        ) : customers.filter(c => 
+                             c.full_name.toLowerCase().includes(customerSearch.toLowerCase()) || 
+                             c.phone?.includes(customerSearch)
+                           ).map((c) => (
+                          <tr key={c.id} className="hover:bg-zinc-50/50 transition-colors">
+                            <td className="px-4 py-4">
+                              <p className="font-bold text-zinc-900">{c.full_name}</p>
+                              <p className="text-xs text-zinc-500">{c.email} · {c.phone}</p>
+                            </td>
+                            <td className="px-4 py-4 max-w-[200px]">
+                              <p className="text-xs text-zinc-600 line-clamp-2">{c.street_address}, {c.house_or_apt}</p>
+                              <p className="text-[10px] font-bold text-zinc-400">CP: {c.zip_code}</p>
+                            </td>
+                            <td className="px-4 py-4">
+                               <Select value={c.notes || "Normal"} onValueChange={(v) => updateCustomerTag(c.id, v === "Normal" ? null : v)}>
+                                  <SelectTrigger className={`h-8 w-[160px] rounded-full px-3 text-[11px] font-bold border ${
+                                    c.notes === 'VIP' ? 'bg-amber-100 border-amber-300 text-amber-900' :
+                                    c.notes === 'NO PAGA' ? 'bg-red-100 border-red-300 text-red-900' :
+                                    c.notes === 'NO RECIBE' ? 'bg-orange-100 border-orange-300 text-orange-900' :
+                                    'bg-zinc-100 border-zinc-200 text-zinc-500'
+                                  }`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Normal">Estado Normal</SelectItem>
+                                    <SelectItem value="VIP">Cliente VIP ⭐</SelectItem>
+                                    <SelectItem value="NO PAGA">Pide y no paga ❌</SelectItem>
+                                    <SelectItem value="NO RECIBE">No recibe / Cancela ⚠️</SelectItem>
+                                  </SelectContent>
+                               </Select>
+                            </td>
+                            <td className="px-4 py-4 text-right">
+                              <div className="flex justify-end gap-1">
+                                {c.notes === 'NO PAGA' && <Ban className="h-5 w-5 text-red-600 animate-pulse" title="¡Cuidado con este cliente!" />}
+                                {c.notes === 'VIP' && <UserCheck className="h-5 w-5 text-amber-500" title="Cliente de confianza" />}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB: ENTREGAS */}
+            <TabsContent value="entregas" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+               <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm overflow-hidden p-12 text-center space-y-6">
+                  <div className="mx-auto w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center">
+                    <Truck className="w-10 h-10 text-blue-600" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-black">Central de Logística y Tickets</h2>
+                    <p className="text-zinc-500 max-w-md mx-auto">Desde aquí puedes organizar la ruta del chofer e imprimir los tickets de entrega para los paquetes.</p>
+                  </div>
+                  <Button asChild className="rounded-2xl h-14 px-8 text-lg font-bold shadow-xl shadow-blue-200" style={{ backgroundColor: BRAND.black }}>
+                    <Link href="/admin/reportes">Abrir Generador de Ruta y Tickets →</Link>
+                  </Button>
+               </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
       </div>
 
       <Dialog open={Boolean(editingProduct)} onOpenChange={(open) => !open && setEditingProduct(null)}>
