@@ -557,12 +557,6 @@ export default function AdminPage() {
             <p className="text-sm uppercase tracking-[0.2em] text-zinc-500">Queso Pa'Bueno</p>
             <h1 className="text-3xl font-black tracking-tight">Panel administrativo</h1>
           </div>
-          <Button asChild variant="outline" className="rounded-2xl">
-            <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver a tienda
-            </Link>
-          </Button>
         </div>
 
         <div className="mb-6 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -621,17 +615,17 @@ export default function AdminPage() {
         ) : (
           <Tabs defaultValue="pedidos" className="w-full">
             <TabsList className="mb-8 grid h-auto w-full grid-cols-2 lg:grid-cols-4 rounded-[20px] bg-zinc-200/50 p-1">
-              <TabsTrigger value="pedidos" className="rounded-2xl py-3 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
-                <ClipboardList className="w-4 h-4 mr-2" /> Pedidos
+              <TabsTrigger value="pedidos" className="rounded-2xl py-6 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold text-lg">
+                <ClipboardList className="w-5 h-5 mr-3" /> Pedidos
               </TabsTrigger>
-              <TabsTrigger value="productos" className="rounded-2xl py-3 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
-                <Plus className="w-4 h-4 mr-2" /> Productos
+              <TabsTrigger value="productos" className="rounded-2xl py-6 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold text-lg">
+                <Plus className="w-5 h-5 mr-3" /> Productos
               </TabsTrigger>
-              <TabsTrigger value="clientes" className="rounded-2xl py-3 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
-                <Users className="w-4 h-4 mr-2" /> Clientes
+              <TabsTrigger value="clientes" className="rounded-2xl py-6 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold text-lg">
+                <Users className="w-5 h-5 mr-3" /> Clientes
               </TabsTrigger>
-              <TabsTrigger value="entregas" className="rounded-2xl py-3 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold">
-                <Truck className="w-4 h-4 mr-2" /> Entregas
+              <TabsTrigger value="entregas" className="rounded-2xl py-6 px-4 data-[state=active]:bg-black data-[state=active]:text-white transition-all font-bold text-lg">
+                <Truck className="w-5 h-5 mr-3" /> Entregas
               </TabsTrigger>
             </TabsList>
 
@@ -856,11 +850,13 @@ export default function AdminPage() {
                                     <SelectItem value="VIP">Cliente VIP ⭐</SelectItem>
                                     <SelectItem value="NO PAGA">Pide y no paga ❌</SelectItem>
                                     <SelectItem value="NO RECIBE">No recibe / Cancela ⚠️</SelectItem>
+                                    <SelectItem value="BLOQUEADO">BLOQUEADO 🚫</SelectItem>
                                   </SelectContent>
                                </Select>
                             </td>
                             <td className="px-4 py-4 text-right">
                               <div className="flex justify-end gap-1">
+                                {c.notes === 'BLOQUEADO' && <Ban className="h-5 w-5 text-zinc-900" />}
                                 {c.notes === 'NO PAGA' && <Ban className="h-5 w-5 text-red-600 animate-pulse" />}
                                 {c.notes === 'VIP' && <UserCheck className="h-5 w-5 text-amber-500" />}
                               </div>

@@ -453,6 +453,10 @@ export default function Page() {
         throw new Error("Por favor completa tu perfil entrando a 'Mi perfil' antes de hacer un pedido.");
       }
 
+      if (profile.notes === "BLOQUEADO") {
+        throw new Error("Tu cuenta tiene restricciones para realizar pedidos. Por favor contacta al administrador.");
+      }
+
       const itemsInput = cart.map(item => ({
         product_id: item.id,
         product_name_snapshot: item.name,
@@ -521,16 +525,16 @@ export default function Page() {
               Mi Perfil
             </Button>
             <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700 bg-white/80 backdrop-blur-sm border border-zinc-200 shadow-sm"
+              variant="outline"
+              size="sm"
+              className="rounded-full h-9 px-4 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 bg-white/90 backdrop-blur-sm shadow-sm font-bold flex items-center gap-2"
               onClick={async () => {
                 await supabase.auth.signOut();
                 setProfileOpen(false);
               }}
-              title="Cerrar sesión"
             >
               <LogOut className="h-4 w-4" />
+              Cerrar Sesión
             </Button>
           </div>
         )}
