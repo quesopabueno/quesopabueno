@@ -21,7 +21,8 @@ import {
   Users,
   Ban,
   Search,
-  UserCheck
+  UserCheck,
+  LogOut
 } from "lucide-react";
 import {
   Tabs,
