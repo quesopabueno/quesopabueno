@@ -1,6 +1,6 @@
 "use client";
 
-import { adminSupabase as supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { getAdminOrders, type OrderStatus, type PaymentStatus } from "@/lib/orders";
 import { optimizeRoute } from "@/lib/googleMaps";
 import { useEffect, useState, useMemo, useRef } from "react";

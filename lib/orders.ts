@@ -97,11 +97,15 @@ export async function getAdminOrders() {
       payment_status,
       total,
       created_at,
+      customer_id,
       customer_name_snapshot,
       customer_phone_snapshot,
       address_snapshot,
       customer_notes,
       delivery_sequence,
+      customers (
+        notes
+      ),
       order_items (
         quantity,
         product_name_snapshot,

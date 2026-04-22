@@ -22,7 +22,9 @@ import {
   Ban,
   Search,
   UserCheck,
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import {
   Tabs,
@@ -104,6 +106,7 @@ type Order = {
   db_id: string;
   createdAt: string;
   customerName: string;
+  customerStatus?: string | null;
   phone: string;
   address: string;
   deliveryDay: string;
@@ -199,6 +202,26 @@ export default function AdminPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
+
+  const toggleOrder = (id: string) => {
+    setExpandedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleCustomer = (id: string) => {
+    setExpandedCustomers(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const [savingProduct, setSavingProduct] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -248,24 +271,30 @@ export default function AdminPage() {
     try {
       const data = await getAdminOrders();
       const mappedOrders: Order[] = data.map((o: any) => {
-        const oNum = String(o.order_number);
         return {
-          id: oNum.startsWith("QPB") ? oNum : `QPB-${oNum}`,
+          id: `QPB-${o.order_number}`,
           db_id: o.id,
-          createdAt: o.created_at ? new Date(o.created_at).toISOString().split('T')[0] : '',
-          customerName: o.customer_name_snapshot || "Desconocido",
-          phone: o.customer_phone_snapshot || "-",
-          address: o.address_snapshot || "-",
+          customerName: o.customer_name_snapshot,
+          customerStatus: o.customers?.notes || null,
+          phone: o.customer_phone_snapshot,
+          address: o.address_snapshot,
           deliveryDay: o.delivery_day,
           deliveryWindow: o.delivery_window,
           status: o.order_status,
           payment: o.payment_status,
           total: o.total,
-          items: o.order_items.map((i: any) => ({
-            name: i.product_name_snapshot || "Producto",
+          createdAt: new Date(o.created_at).toLocaleString('es-VE', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          items: (o.order_items || []).map((i: any) => ({
+            name: i.product_name_snapshot,
             qty: i.quantity,
-            unit: i.unit_snapshot || "u",
-          })),
+            unit: i.unit_snapshot
+          }))
         };
       });
       setOrders(mappedOrders);
@@ -656,60 +685,111 @@ export default function AdminPage() {
                     {ordersLoading ? (
                        <div className="text-center py-12 text-zinc-500">Cargando pedidos...</div>
                     ) : (
-                      orders.map((order) => (
-                        <div key={order.id} className="rounded-[22px] border border-zinc-200 p-5 shadow-sm hover:border-zinc-300 transition-colors bg-white mx-4 sm:mx-0">
-                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                            <div className="space-y-3">
-                              <div className="flex flex-wrap items-center gap-3">
-                                <p className="text-lg font-black text-zinc-900">{order.id}</p>
-                                <Badge variant="secondary" className="rounded-md font-medium text-[10px] uppercase tracking-wider">{order.createdAt}</Badge>
-                                
-                                <div className="flex gap-2">
-                                  <Select value={order.status} onValueChange={(v) => handleStatusChange(order.db_id, v as OrderStatus)}>
-                                    <SelectTrigger className={`h-8 rounded-full px-4 text-xs font-bold border transition-colors ${statusBadgeClass(order.status)}`}>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {["Nuevo", "Confirmado", "En preparación", "En ruta", "Llegada", "Entregado"].map(s => (
-                                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-
-                                  <Select value={order.payment} onValueChange={(v) => handlePaymentChange(order.db_id, v as PaymentStatus)}>
-                                    <SelectTrigger className={`h-8 rounded-full px-4 text-xs font-bold border transition-colors ${statusBadgeClass(order.payment)}`}>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {["Pendiente", "Parcial", "Cobrado"].map(p => (
-                                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                      orders.map((order) => {
+                        const isExpanded = expandedOrders.has(order.id);
+                        return (
+                          <div key={order.id} className="rounded-[22px] border border-zinc-200 shadow-sm hover:border-zinc-300 transition-all bg-white mx-4 sm:mx-0 overflow-hidden">
+                            {/* COLLAPSED HEADER */}
+                            <div 
+                              className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-5 cursor-pointer hover:bg-zinc-50/50"
+                              onClick={() => toggleOrder(order.id)}
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-3">
+                                  <p className="text-lg font-black text-zinc-900">{order.id}</p>
+                                  <Badge variant="secondary" className="rounded-md font-medium text-[10px] uppercase tracking-wider">{order.createdAt}</Badge>
+                                  <div className={`h-2.5 w-2.5 rounded-full ${order.status === 'Entregado' ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-zinc-800">{order.customerName}</p>
+                                  {order.customerStatus && (
+                                    <Badge className={`text-[10px] py-0 h-5 font-black uppercase ${
+                                      order.customerStatus === 'VIP' ? 'bg-amber-100 text-amber-900 border-amber-200' :
+                                      order.customerStatus === 'NO PAGA' ? 'bg-red-600 text-white border-red-700' :
+                                      order.customerStatus === 'BLOQUEADO' ? 'bg-black text-white' :
+                                      'bg-zinc-100 text-zinc-600'
+                                    }`}>
+                                      {order.customerStatus}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                               
-                              <p className="font-bold text-zinc-800">{order.customerName} <span className="text-zinc-400 font-normal ml-1">· {order.phone}</span></p>
-                              
-                              <div className="space-y-2 text-sm text-zinc-600">
-                                <p className="flex items-center gap-2"><MapPinned className="h-4 w-4 text-zinc-400" /> {order.address}</p>
-                                <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-zinc-400" /> {order.deliveryDay} · {order.deliveryWindow}</p>
+                              <div className="flex items-center gap-6">
+                                <div className="text-right hidden sm:block">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Total</p>
+                                  <p className="font-black text-zinc-900">{money(order.total)}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                   <Badge className={`rounded-full px-3 text-[10px] h-6 font-bold border ${statusBadgeClass(order.status)}`}>
+                                     {order.status}
+                                   </Badge>
+                                   {isExpanded ? <ChevronUp className="h-5 w-5 text-zinc-400" /> : <ChevronDown className="h-5 w-5 text-zinc-400" />}
+                                </div>
                               </div>
                             </div>
-                            <div className="text-right border-t pt-4 md:border-0 md:pt-0">
-                                <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Monto Total</p>
-                                <p className="text-2xl font-black text-zinc-900">{money(order.total)}</p>
-                            </div>
+
+                            {/* EXPANDED CONTENT */}
+                            {isExpanded && (
+                              <div className="p-5 border-t border-zinc-100 bg-zinc-50/30 animate-in slide-in-from-top-1 duration-200">
+                                <div className="grid gap-6 md:grid-cols-2">
+                                  <div className="space-y-4">
+                                     <div className="flex flex-col gap-2">
+                                       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Acciones de Estado</p>
+                                       <div className="flex flex-wrap gap-2">
+                                         <Select value={order.status} onValueChange={(v) => handleStatusChange(order.db_id, v as OrderStatus)}>
+                                           <SelectTrigger className={`h-9 rounded-xl px-4 text-xs font-bold border bg-white ${statusBadgeClass(order.status)}`}>
+                                             <SelectValue />
+                                           </SelectTrigger>
+                                           <SelectContent>
+                                             {["Nuevo", "Confirmado", "En preparación", "En ruta", "Llegada", "Entregado"].map(s => (
+                                               <SelectItem key={s} value={s}>{s}</SelectItem>
+                                             ))}
+                                           </SelectContent>
+                                         </Select>
+
+                                         <Select value={order.payment} onValueChange={(v) => handlePaymentChange(order.db_id, v as PaymentStatus)}>
+                                           <SelectTrigger className={`h-9 rounded-xl px-4 text-xs font-bold border bg-white ${statusBadgeClass(order.payment)}`}>
+                                             <SelectValue />
+                                           </SelectTrigger>
+                                           <SelectContent>
+                                             {["Pendiente", "Parcial", "Cobrado"].map(p => (
+                                               <SelectItem key={p} value={p}>{p}</SelectItem>
+                                             ))}
+                                           </SelectContent>
+                                         </Select>
+                                       </div>
+                                     </div>
+
+                                     <div className="space-y-2 text-sm text-zinc-600 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
+                                       <p className="font-bold text-zinc-400 text-[10px] uppercase tracking-widest mb-1">Datos de Entrega</p>
+                                       <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-zinc-400" /> {order.phone}</p>
+                                       <p className="flex items-center gap-3"><MapPinned className="h-4 w-4 text-zinc-400" /> {order.address}</p>
+                                       <p className="flex items-center gap-3"><Clock3 className="h-4 w-4 text-zinc-400" /> {order.deliveryDay} · {order.deliveryWindow}</p>
+                                     </div>
+                                  </div>
+
+                                  <div className="space-y-3">
+                                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Detalle de Productos</p>
+                                     <div className="bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm space-y-2">
+                                       {order.items.map((item, index) => (
+                                         <div key={index} className="flex justify-between items-center text-sm border-b border-zinc-50 pb-2 last:border-0 last:pb-0">
+                                           <span className="text-zinc-600">{item.name}</span>
+                                           <span className="font-bold text-zinc-900">{item.qty} {item.unit}</span>
+                                         </div>
+                                       ))}
+                                       <div className="pt-2 flex justify-between items-center">
+                                         <span className="font-bold text-zinc-900">Total</span>
+                                         <span className="text-lg font-black text-zinc-900">{money(order.total)}</span>
+                                       </div>
+                                     </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div className="mt-5 flex flex-wrap gap-2 border-t pt-4 border-zinc-100">
-                            {order.items.map((item, index) => (
-                              <Badge key={index} variant="outline" className="rounded-full border-zinc-200 bg-zinc-50/50 px-3 py-1 text-xs text-zinc-700">
-                                <span className="font-bold mr-1">{item.qty}{item.unit}</span> {item.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </CardContent>
@@ -819,62 +899,91 @@ export default function AdminPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b text-zinc-400 font-bold uppercase text-[10px] tracking-widest">
-                          <th className="px-4 py-3 text-left">Cliente</th>
-                          <th className="px-4 py-3 text-left">Ubicación</th>
-                          <th className="px-4 py-3 text-left">Estado / Alerta</th>
-                          <th className="px-4 py-3 text-right">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100">
-                        {customersLoading ? (
-                           <tr><td colSpan={4} className="py-12 text-center text-zinc-400">Cargando base de datos...</td></tr>
-                        ) : customers.filter(c => 
-                             (c.full_name || "").toLowerCase().includes(customerSearch.toLowerCase()) || 
-                             (c.phone || "").includes(customerSearch)
-                           ).map((c) => (
-                          <tr key={c.id} className="hover:bg-zinc-50/50 transition-colors">
-                            <td className="px-4 py-4">
-                              <p className="font-bold text-zinc-900">{c.full_name}</p>
-                              <p className="text-xs text-zinc-500">{c.email} · {c.phone}</p>
-                            </td>
-                            <td className="px-4 py-4 max-w-[200px]">
-                              <p className="text-xs text-zinc-600 line-clamp-2">{c.street_address}, {c.house_or_apt}</p>
-                              <p className="text-[10px] font-bold text-zinc-400">CP: {c.zip_code}</p>
-                            </td>
-                            <td className="px-4 py-4">
-                               <Select value={c.notes || "Normal"} onValueChange={(v) => updateCustomerTag(c.id, v === "Normal" ? null : v)}>
-                                  <SelectTrigger className={`h-8 w-[160px] rounded-full px-3 text-[11px] font-bold border ${
-                                    c.notes === 'VIP' ? 'bg-amber-100 border-amber-300 text-amber-900' :
-                                    c.notes === 'NO PAGA' ? 'bg-red-100 border-red-300 text-red-900' :
-                                    c.notes === 'NO RECIBE' ? 'bg-orange-100 border-orange-300 text-orange-900' :
-                                    'bg-zinc-100 border-zinc-200 text-zinc-500'
-                                  }`}>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Normal">Estado Normal</SelectItem>
-                                    <SelectItem value="VIP">Cliente VIP ⭐</SelectItem>
-                                    <SelectItem value="NO PAGA">Pide y no paga ❌</SelectItem>
-                                    <SelectItem value="NO RECIBE">No recibe / Cancela ⚠️</SelectItem>
-                                    <SelectItem value="BLOQUEADO">BLOQUEADO 🚫</SelectItem>
-                                  </SelectContent>
-                               </Select>
-                            </td>
-                            <td className="px-4 py-4 text-right">
-                              <div className="flex justify-end gap-1">
-                                {c.notes === 'BLOQUEADO' && <Ban className="h-5 w-5 text-zinc-900" />}
-                                {c.notes === 'NO PAGA' && <Ban className="h-5 w-5 text-red-600 animate-pulse" />}
-                                {c.notes === 'VIP' && <UserCheck className="h-5 w-5 text-amber-500" />}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-3">
+                    {customersLoading ? (
+                       <div className="text-center py-12 text-zinc-500">Cargando base de datos...</div>
+                    ) : (
+                      customers.filter(c => 
+                        (c.full_name || "").toLowerCase().includes(customerSearch.toLowerCase()) || 
+                        (c.phone || "").includes(customerSearch)
+                      ).map((c) => {
+                        const isExpanded = expandedCustomers.has(c.id);
+                        return (
+                          <div key={c.id} className="rounded-[22px] border border-zinc-200 shadow-sm bg-white overflow-hidden transition-all hover:border-zinc-300">
+                             {/* COLLAPSED HEADER */}
+                             <div 
+                               className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-50/50"
+                               onClick={() => toggleCustomer(c.id)}
+                             >
+                               <div className="flex items-center gap-3">
+                                 <div className="rounded-full bg-zinc-100 p-2 text-zinc-400">
+                                   <User className="h-5 w-5" />
+                                 </div>
+                                 <div>
+                                   <p className="font-bold text-zinc-900">{c.full_name}</p>
+                                   <p className="text-xs text-zinc-500">{c.phone}</p>
+                                 </div>
+                               </div>
+                               
+                               <div className="flex items-center gap-4">
+                                  <div className="hidden sm:block">
+                                    {c.notes === 'VIP' && <Badge className="bg-amber-100 text-amber-900 border-amber-200 font-bold uppercase text-[10px]">VIP ⭐</Badge>}
+                                    {c.notes === 'BLOQUEADO' && <Badge className="bg-black text-white font-bold uppercase text-[10px]">Bloqueado 🚫</Badge>}
+                                  </div>
+                                  {isExpanded ? <ChevronUp className="h-5 w-5 text-zinc-400" /> : <ChevronDown className="h-5 w-5 text-zinc-400" />}
+                               </div>
+                             </div>
+
+                             {/* EXPANDED CONTENT */}
+                             {isExpanded && (
+                               <div className="p-5 border-t border-zinc-100 bg-zinc-50/30 space-y-4 animate-in slide-in-from-top-1 duration-200">
+                                 <div className="grid gap-6 md:grid-cols-2">
+                                    <div className="space-y-4">
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Contacto</p>
+                                        <p className="text-sm text-zinc-700 font-medium">{c.email || 'Sin correo'}</p>
+                                        <p className="text-sm text-zinc-700">{c.phone}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Ubicación</p>
+                                        <p className="text-sm text-zinc-600">{c.street_address}, {c.house_or_apt}</p>
+                                        <p className="text-[10px] font-bold text-zinc-400">CP: {c.zip_code}</p>
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Estado del Cliente</p>
+                                      <Select value={c.notes || "Normal"} onValueChange={(v) => updateCustomerTag(c.id, v === "Normal" ? null : v)}>
+                                        <SelectTrigger className={`h-10 rounded-xl px-4 text-xs font-bold border bg-white ${
+                                          c.notes === 'VIP' ? 'bg-amber-100 border-amber-300 text-amber-900' :
+                                          c.notes === 'NO PAGA' ? 'bg-red-100 border-red-300 text-red-900' :
+                                          c.notes === 'NO RECIBE' ? 'bg-orange-100 border-orange-300 text-orange-900' :
+                                          c.notes === 'BLOQUEADO' ? 'bg-black border-black text-white' :
+                                          'bg-zinc-100 border-zinc-200 text-zinc-500'
+                                        }`}>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Normal">Estado Normal</SelectItem>
+                                          <SelectItem value="VIP">Cliente VIP ⭐</SelectItem>
+                                          <SelectItem value="NO PAGA">Pide y no paga ❌</SelectItem>
+                                          <SelectItem value="NO RECIBE">No recibe / Cancela ⚠️</SelectItem>
+                                          <SelectItem value="BLOQUEADO">BLOQUEADO 🚫</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      
+                                      <div className="flex gap-2 mt-2">
+                                        {c.notes === 'BLOQUEADO' && <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded font-black">CUENTA BLOQUEADA</span>}
+                                        {c.notes === 'NO PAGA' && <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded font-black animate-pulse">ALERTA MOROSO</span>}
+                                      </div>
+                                    </div>
+                                 </div>
+                               </div>
+                             )}
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </CardContent>
               </Card>
