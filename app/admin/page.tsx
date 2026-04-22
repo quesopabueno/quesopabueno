@@ -861,8 +861,8 @@ export default function AdminPage() {
                             </td>
                             <td className="px-4 py-4 text-right">
                               <div className="flex justify-end gap-1">
-                                {c.notes === 'NO PAGA' && <Ban className="h-5 w-5 text-red-600 animate-pulse" title="¡Cuidado con este cliente!" />}
-                                {c.notes === 'VIP' && <UserCheck className="h-5 w-5 text-amber-500" title="Cliente de confianza" />}
+                                {c.notes === 'NO PAGA' && <Ban className="h-5 w-5 text-red-600 animate-pulse" />}
+                                {c.notes === 'VIP' && <UserCheck className="h-5 w-5 text-amber-500" />}
                               </div>
                             </td>
                           </tr>
