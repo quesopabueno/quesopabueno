@@ -1,6 +1,6 @@
 "use client";
 
-import { adminSupabase as supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { getAdminOrders, updateOrderStatus, updateOrderPaymentStatus, type OrderStatus, type PaymentStatus } from "@/lib/orders";
 import { sampleProducts as sampleProductsFromFile } from "@/lib/mock-data";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
