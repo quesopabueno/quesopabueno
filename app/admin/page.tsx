@@ -552,11 +552,21 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,_#fffdf8,_#f7f1e6_45%,_#efe7da_100%)] text-zinc-900">
       <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
-        <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="mb-8 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-zinc-500">Queso Pa'Bueno</p>
             <h1 className="text-3xl font-black tracking-tight">Panel administrativo</h1>
           </div>
+          {adminSignedIn && (
+            <Button 
+              variant="outline" 
+              className="rounded-2xl border-red-200 text-red-600 font-bold hover:bg-red-50 hover:text-red-700 transition-colors gap-2 h-11 px-6 shadow-sm"
+              onClick={adminSignOut}
+            >
+              <LogOut className="w-4 h-4" />
+              Cerrar sesión admin
+            </Button>
+          )}
         </div>
 
         <div className="mb-6 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -780,9 +790,6 @@ export default function AdminPage() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                  <div className="p-6 border-t bg-zinc-50 flex justify-end">
-                     <Button variant="ghost" className="rounded-xl text-zinc-400 text-xs" onClick={adminSignOut}>Cerrar Sesión Administradora</Button>
                   </div>
                 </Card>
               </div>
