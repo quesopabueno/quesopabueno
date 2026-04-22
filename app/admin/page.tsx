@@ -24,7 +24,9 @@ import {
   UserCheck,
   LogOut,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Phone,
+  User
 } from "lucide-react";
 import {
   Tabs,
