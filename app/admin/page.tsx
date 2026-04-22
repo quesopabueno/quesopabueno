@@ -830,8 +830,8 @@ export default function AdminPage() {
                         {customersLoading ? (
                            <tr><td colSpan={4} className="py-12 text-center text-zinc-400">Cargando base de datos...</td></tr>
                         ) : customers.filter(c => 
-                             c.full_name.toLowerCase().includes(customerSearch.toLowerCase()) || 
-                             c.phone?.includes(customerSearch)
+                             (c.full_name || "").toLowerCase().includes(customerSearch.toLowerCase()) || 
+                             (c.phone || "").includes(customerSearch)
                            ).map((c) => (
                           <tr key={c.id} className="hover:bg-zinc-50/50 transition-colors">
                             <td className="px-4 py-4">
