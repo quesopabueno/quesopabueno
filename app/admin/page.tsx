@@ -26,7 +26,11 @@ import {
   ChevronDown,
   ChevronUp,
   Phone,
-  User
+  User,
+  FileText,
+  Printer,
+  Download,
+  Calendar
 } from "lucide-react";
 import {
   Tabs,
@@ -116,6 +120,7 @@ type Order = {
   status: OrderStatus;
   payment: PaymentStatus;
   total: number;
+  rawDate: string;
   items: { name: string; qty: number; unit: Unit }[];
 };
 
@@ -204,6 +209,7 @@ export default function AdminPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [reportFilter, setReportFilter] = useState<'week' | 'month' | 'today'>('week');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
 
@@ -285,6 +291,7 @@ export default function AdminPage() {
           status: o.order_status,
           payment: o.payment_status,
           total: o.total,
+          rawDate: o.created_at,
           createdAt: new Date(o.created_at).toLocaleString('es-VE', { 
             day: '2-digit', 
             month: '2-digit', 
@@ -417,6 +424,46 @@ export default function AdminPage() {
   const pendingOrders = useMemo(() => orders.filter((o) => o.payment === "Pendiente").length, [orders]);
   const routeStops = useMemo(() => orders.filter((o) => o.status !== "Entregado").length, [orders]);
   const grossSales = useMemo(() => orders.reduce((sum, order) => sum + order.total, 0), [orders]);
+
+  const productionSummary = useMemo(() => {
+    const now = new Date();
+    const activeOrders = orders.filter(o => o.status !== "Entregado");
+    
+    let filtered = activeOrders;
+    if (reportFilter === 'today') {
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      filtered = activeOrders.filter(o => new Date(o.rawDate) >= startOfToday);
+    } else if (reportFilter === 'week') {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(now.getDate() - 7);
+      filtered = activeOrders.filter(o => new Date(o.rawDate) >= oneWeekAgo);
+    } else if (reportFilter === 'month') {
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setDate(now.getDate() - 30);
+      filtered = activeOrders.filter(o => new Date(o.rawDate) >= oneMonthAgo);
+    }
+
+    const summary: Record<string, { qty: number; unit: string }> = {};
+    filtered.forEach(o => {
+      o.items.forEach(item => {
+        const key = `${item.name}|${item.unit}`;
+        if (!summary[key]) {
+          summary[key] = { qty: 0, unit: item.unit };
+        }
+        summary[key].qty += item.qty;
+      });
+    });
+
+    return Object.entries(summary).map(([key, data]) => ({
+      name: key.split('|')[0],
+      qty: data.qty,
+      unit: data.unit
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [orders, reportFilter]);
+
+  const handlePrintReport = () => {
+    window.print();
+  };
 
   const adminSignIn = async () => {
     setAuthError(null);
@@ -667,6 +714,9 @@ export default function AdminPage() {
               <TabsTrigger value="clientes" className="rounded-[24px] h-full px-8 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-base flex items-center gap-2">
                 <Users className="w-5 h-5" /> Clientes
               </TabsTrigger>
+              <TabsTrigger value="consolidado" className="rounded-[24px] h-full px-8 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-base flex items-center gap-2">
+                <FileText className="w-5 h-5" /> Consolidado
+              </TabsTrigger>
               <TabsTrigger value="entregas" className="rounded-[24px] h-full px-8 data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-base flex items-center gap-2">
                 <Truck className="w-5 h-5" /> Entregas
               </TabsTrigger>
@@ -872,35 +922,33 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </Card>
+                    ))}                </Card>
               </div>
             </TabsContent>
-
+            
             {/* TAB: CLIENTES */}
             <TabsContent value="clientes" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm overflow-hidden">
-                <CardHeader className="bg-zinc-50 border-b border-zinc-100">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <CardTitle className="flex items-center gap-2 text-xl">
-                        <Users className="h-5 w-5 text-purple-600" /> Directorio de Clientes
-                      </CardTitle>
-                      <CardDescription>Identifica y gestiona el historial de tus compradores.</CardDescription>
-                    </div>
-                    <div className="relative max-w-sm w-full">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                      <Input 
-                        placeholder="Buscar por nombre o teléfono..." 
-                        className="pl-10 rounded-full bg-white"
-                        value={customerSearch}
-                        onChange={(e) => setCustomerSearch(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6">
+               <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm overflow-hidden">
+                 <CardHeader className="bg-zinc-50 border-b border-zinc-100">
+                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                     <div>
+                       <CardTitle className="flex items-center gap-2 text-xl">
+                         <Users className="h-5 w-5 text-purple-600" /> Directorio de Clientes
+                       </CardTitle>
+                       <CardDescription>Identifica y gestiona el historial de tus compradores.</CardDescription>
+                     </div>
+                     <div className="relative max-w-sm w-full">
+                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                       <Input 
+                         placeholder="Buscar por nombre o teléfono..." 
+                         className="pl-10 rounded-full bg-white"
+                         value={customerSearch}
+                         onChange={(e) => setCustomerSearch(e.target.value)}
+                       />
+                     </div>
+                   </div>
+                 </CardHeader>
+                 <CardContent className="p-4 sm:p-6">
                   <div className="space-y-3">
                     {customersLoading ? (
                        <div className="text-center py-12 text-zinc-500">Cargando base de datos...</div>
@@ -986,6 +1034,80 @@ export default function AdminPage() {
                         );
                       })
                     )}
+                  </div>
+                </CardContent>
+               </Card>
+            </TabsContent>
+
+            {/* TAB: CONSOLIDADO */}
+            <TabsContent value="consolidado" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm overflow-hidden">
+                <CardHeader className="bg-zinc-50 border-b border-zinc-100 print:hidden">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <FileText className="h-5 w-5 text-indigo-600" /> Consolidado de Carga y Producción
+                      </CardTitle>
+                      <CardDescription>Resumen de productos totales requeridos para pedidos pendientes.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <Select value={reportFilter} onValueChange={(v) => setReportFilter(v as any)}>
+                         <SelectTrigger className="w-[140px] rounded-full bg-white font-bold h-10 shadow-sm border-zinc-200">
+                           <Calendar className="w-4 h-4 mr-2" />
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="today">Hoy</SelectItem>
+                           <SelectItem value="week">Última Semana</SelectItem>
+                           <SelectItem value="month">Último Mes</SelectItem>
+                         </SelectContent>
+                       </Select>
+                       <Button 
+                        className="rounded-full h-10 px-6 font-bold shadow-md bg-black hover:bg-zinc-800 text-white"
+                        onClick={handlePrintReport}
+                       >
+                         <Printer className="w-4 h-4 mr-2" /> Imprimir / PDF
+                       </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-8 print:p-0">
+                  <div id="production-report" className="max-w-3xl mx-auto border border-zinc-100 p-8 rounded-[32px] bg-white print:border-0 print:p-4">
+                    <div className="text-center mb-8">
+                       <p className="text-sm font-black uppercase tracking-[0.3em] text-zinc-400">Queso Pa'Bueno</p>
+                       <h2 className="text-3xl font-black mt-2">Consolidado de Alistamiento</h2>
+                       <p className="text-zinc-500 mt-1 font-medium">Período: {reportFilter === 'week' ? 'Última Semana' : reportFilter === 'month' ? 'Último Mes' : 'Hoy'}</p>
+                       <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-widest">{new Date().toLocaleString()}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b-2 border-zinc-900 pb-2">
+                            <th className="text-left py-3 font-black uppercase tracking-widest text-xs">Producto</th>
+                            <th className="text-right py-3 font-black uppercase tracking-widest text-xs">Cantidad Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {productionSummary.length === 0 ? (
+                             <tr><td colSpan={2} className="py-12 text-center text-zinc-400 font-medium italic">No hay productos pendientes en este período.</td></tr>
+                          ) : (
+                            productionSummary.map((item, idx) => (
+                              <tr key={idx} className="border-b border-zinc-100 last:border-b-2 last:border-zinc-900">
+                                <td className="py-5 font-bold text-zinc-800 text-lg">{item.name}</td>
+                                <td className="py-5 text-right font-black text-2xl text-zinc-900">
+                                  {item.qty} <span className="text-xs uppercase text-zinc-400 ml-1 font-bold">{item.unit}</span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mt-12 pt-8 border-t border-zinc-100 text-center text-xs text-zinc-400 italic">
+                      Este reporte consolida solo productos de pedidos con estados confirmados y pendientes de entrega.
+                    </div>
                   </div>
                 </CardContent>
               </Card>
