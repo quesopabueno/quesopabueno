@@ -35,6 +35,8 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [orders, setOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -147,9 +149,34 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
     }
   }
 
+  async function loadOrders(cId: string) {
+    try {
+      setOrdersLoading(true);
+      const { data, error } = await supabase
+        .from("orders")
+        .select("order_number, order_status, total, created_at")
+        .eq("customer_id", cId)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setOrders(data);
+      }
+    } catch (err) {
+      console.error("Error loading client orders:", err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    if (customerId) {
+      loadOrders(customerId);
+    }
+  }, [customerId]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -413,7 +440,46 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
         </div>
+        </div>
       </form>
+
+      {/* HISTORIAL DE PEDIDOS */}
+      <div className="mt-12 border-t border-zinc-200 pt-8">
+        <h3 className="text-xl font-bold text-zinc-900 mb-4">Mis últimos pedidos</h3>
+        {ordersLoading ? (
+          <p className="text-sm text-zinc-400">Cargando historial...</p>
+        ) : orders.length === 0 ? (
+          <p className="text-sm text-zinc-500 italic text-center py-6 bg-zinc-50 rounded-2xl">Aún no has realizado pedidos.</p>
+        ) : (
+          <div className="space-y-3">
+            {orders.map((o) => (
+              <div key={o.order_number} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border border-zinc-100 bg-white hover:border-zinc-300 transition-all shadow-sm gap-4">
+                <div className="space-y-1">
+                  <p className="font-black text-zinc-900 text-lg">#QPB-{o.order_number}</p>
+                  <p className="text-xs text-zinc-400">{new Date(o.created_at).toLocaleDateString()} · {new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                   <div className="text-right">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Estado</p>
+                      <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
+                        o.order_status === 'Nuevo' ? 'bg-yellow-100 text-yellow-900 border-yellow-300' :
+                        o.order_status === 'Entregado' ? 'bg-green-100 text-green-900 border-green-300' :
+                        'bg-blue-100 text-blue-900 border-blue-300'
+                      }`}>
+                        {o.order_status === 'Nuevo' ? 'Recibido' : o.order_status}
+                      </span>
+                   </div>
+                   <div className="text-right border-l pl-4 border-zinc-100">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total</p>
+                      <p className="font-black text-zinc-900">${o.total}</p>
+                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

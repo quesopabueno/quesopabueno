@@ -281,6 +281,7 @@ export default function Page() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [orderSuccessMsg, setOrderSuccessMsg] = useState("");
+  const [lastOrderNumber, setLastOrderNumber] = useState<number | null>(null);
   const [promoOpen, setPromoOpen] = useState(false);
 
   const resetAuthPanel = () => {
@@ -498,7 +499,8 @@ export default function Page() {
 
       setCart([]);
       setNotes("");
-      setOrderSuccessMsg("¡Tu pedido fue confirmado exitosamente! Pago contra entrega.");
+      setLastOrderNumber(orderData.order_number);
+      setOrderSuccessMsg("¡Tu pedido fue recibido exitosamente!");
       setTimeout(() => {
         document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 50);
@@ -683,9 +685,40 @@ export default function Page() {
 
               <CardContent className="space-y-5">
                 {orderSuccessMsg ? (
-                  <div className="rounded-2xl bg-green-50 p-6 text-center text-green-700 border border-green-200">
-                    <p className="font-bold text-lg mb-1">¡Pedido Recibido!</p>
-                    <p className="text-sm font-medium">{orderSuccessMsg}</p>
+                  <div className="rounded-[32px] bg-green-50 p-8 text-center text-green-700 border border-green-200 animate-in fade-in zoom-in duration-300">
+                    <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                      <Package className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h3 className="font-black text-2xl mb-1">¡Listo!</h3>
+                    <p className="text-sm font-medium mb-6 opacity-80">{orderSuccessMsg}</p>
+                    
+                    {lastOrderNumber && (
+                      <div className="bg-white/50 rounded-2xl p-4 border border-green-100 mb-6">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Tu pedido es el</p>
+                        <p className="text-2xl font-black text-zinc-900">#QPB-{lastOrderNumber}</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <Button 
+                        className="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center justify-center gap-2"
+                        onClick={() => {
+                          const msg = encodeURIComponent(`Hola QPB, acabo de realizar el pedido #QPB-${lastOrderNumber}. ¿Podrían confirmarme la recepción?`);
+                          window.open(`https://wa.me/${BUSINESS.phone.replace(/\s/g, '')}?text=${msg}`, '_blank');
+                        }}
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        Confirmar por WhatsApp
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-green-700 font-bold hover:bg-green-100/50" 
+                        onClick={() => setOrderSuccessMsg("")}
+                      >
+                        Hacer otro pedido
+                      </Button>
+                    </div>
                   </div>
                 ) : cart.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">

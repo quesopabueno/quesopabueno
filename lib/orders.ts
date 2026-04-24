@@ -56,7 +56,7 @@ export async function createOrder(input: OrderInput) {
         payment_status: "Pendiente",
       },
     ])
-    .select("id")
+    .select("id, order_number")
     .single();
 
   if (orderError || !orderData) {
