@@ -480,12 +480,13 @@ export default function Page() {
 
       let insertSuccess = false;
       let lastErr = null;
+      let orderDataResult = null;
 
       const potentialIds = Array.from(new Set([profile.id, profile.auth_user_id, user!.id].filter(Boolean)));
 
       for (const cid of potentialIds) {
         try {
-          await createOrder({ ...baseInput, customer_id: cid });
+          orderDataResult = await createOrder({ ...baseInput, customer_id: cid });
           insertSuccess = true;
           break;
         } catch (e: any) {
@@ -499,7 +500,9 @@ export default function Page() {
 
       setCart([]);
       setNotes("");
-      setLastOrderNumber(orderData.order_number);
+      if (orderDataResult) {
+        setLastOrderNumber(orderDataResult.order_number);
+      }
       setOrderSuccessMsg("¡Tu pedido fue recibido exitosamente!");
       setTimeout(() => {
         document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
