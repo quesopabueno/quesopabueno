@@ -440,7 +440,6 @@ export default function ClientProfile({ onClose }: ClientProfileProps) {
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
         </div>
-        </div>
       </form>
 
       {/* HISTORIAL DE PEDIDOS */}
