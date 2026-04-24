@@ -922,7 +922,9 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                    ))}                </Card>
+                    ))}
+                  </div>
+                </Card>
               </div>
             </TabsContent>
             
