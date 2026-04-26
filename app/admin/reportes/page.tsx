@@ -8,6 +8,7 @@ import type { Session } from "@supabase/supabase-js";
 import Link from "next/link";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Printer, Map as MapIcon, Truck } from "lucide-react";
 
 type PrintOrder = {
@@ -44,31 +45,7 @@ export default function ReportesPage() {
   const originInputRef = useRef<HTMLInputElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!mapsLoaded || !(window as any).google) return;
-    
-    const initAutocomplete = () => {
-        if (originInputRef.current) {
-            const originAutocomplete = new (window as any).google.maps.places.Autocomplete(originInputRef.current);
-            originAutocomplete.addListener("place_changed", () => {
-               const place = originAutocomplete.getPlace();
-               if (place.formatted_address) setOrigin(place.formatted_address);
-            });
-        }
-        
-        if (destinationInputRef.current) {
-            const destAutocomplete = new (window as any).google.maps.places.Autocomplete(destinationInputRef.current);
-            destAutocomplete.addListener("place_changed", () => {
-               const place = destAutocomplete.getPlace();
-               if (place.formatted_address) setDestination(place.formatted_address);
-            });
-        }
-    };
-
-    // Pequeño timeout para asegurar que el DOM está listo
-    const timer = setTimeout(initAutocomplete, 500);
-    return () => clearTimeout(timer);
-  }, [mapsLoaded]);
+  // Autocomplete removed as requested to avoid input freezing issues
 
   useEffect(() => {
     let mounted = true;
@@ -134,6 +111,17 @@ export default function ReportesPage() {
     if (newSet.has(id)) newSet.delete(id);
     else newSet.add(id);
     setSelectedOrderIds(newSet);
+  };
+
+  const handleSimplePrint = () => {
+    if (selectedOrderIds.size === 0) {
+      setErrorMsg("Selecciona al menos 1 pedido."); return;
+    }
+    const selectedArr = orders.filter(o => selectedOrderIds.has(o.db_id));
+    setDispatchedRoute(selectedArr);
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
 
   const handleDispatch = async () => {
@@ -271,23 +259,21 @@ export default function ReportesPage() {
                   <div>
                     <label className="block text-xs font-bold text-blue-600 mb-1 uppercase">1. Dirección de Origen (Punto de Salida)</label>
                     <input 
-                      ref={originInputRef}
                       type="text" 
                       value={origin}
                       onChange={(e) => setOrigin(e.target.value)}
                       className="w-full border-2 border-blue-200 rounded p-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
-                      placeholder="Ej: 123 Almacén St..."
+                      placeholder="Ej: punto de salida..."
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-blue-600 mb-1 uppercase">2. Dirección de Destino Final (Donde terminará su turno)</label>
                     <input 
-                      ref={destinationInputRef}
                       type="text" 
                       value={destination}
                       onChange={(e) => setDestination(e.target.value)}
                       className="w-full border-2 border-blue-200 rounded p-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
-                      placeholder="Ej: Su Casa, 456 Main St..."
+                      placeholder="Ej: punto final..."
                     />
                   </div>
                   
@@ -302,9 +288,24 @@ export default function ReportesPage() {
                   <Button 
                     onClick={handleDispatch} 
                     disabled={dispatching || selectedOrderIds.size === 0}
-                    className="w-full rounded-xl bg-black text-white hover:bg-zinc-800 disabled:opacity-50"
+                    className="w-full rounded-xl bg-black text-white hover:bg-zinc-800 disabled:opacity-50 h-12 font-bold"
                   >
-                    {dispatching ? "Procesando Algoritmo..." : "Generar Ruta y Despachar"}
+                    {dispatching ? "Calculando Ruta..." : "Generar Ruta Óptima (Google)"}
+                  </Button>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <Separator className="flex-1" />
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase">O simplemente</span>
+                    <Separator className="flex-1" />
+                  </div>
+
+                  <Button 
+                    onClick={handleSimplePrint} 
+                    disabled={dispatching || selectedOrderIds.size === 0}
+                    variant="outline"
+                    className="w-full rounded-xl border-2 border-zinc-200 hover:bg-zinc-50 h-12 font-bold"
+                  >
+                    <Printer className="w-4 h-4 mr-2" /> Imprimir Listado Simple
                   </Button>
                 </div>
               </div>
