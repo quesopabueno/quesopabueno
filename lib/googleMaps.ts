@@ -32,10 +32,6 @@ export async function optimizeRoute(origin: string, destination: string, orders:
     throw new Error(`Error de Google Maps: ${msg}`);
   }
 
-  // waypoint_order es un arreglo de enteros que nos dice cómo ordenó Google nuestras entradas.
-  // Por ejemplo si nosotros le dimos [Ped1, Ped2, Ped3] 
-  // y Google devuelve [2, 0, 1] significa que la ruta óptima empieza yendo a Ped3 (indice 2 de nuestro array),
-  // luego a Ped1 (indice 0), y finalmente a Ped2 (indice 1).
   const optimalOrder = data.routes[0].waypoint_order as number[];
   
   const sortedOrders = optimalOrder.map(index => orders[index]);

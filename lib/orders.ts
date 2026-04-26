@@ -6,7 +6,8 @@ export type OrderStatus =
   | "En preparación"
   | "En ruta"
   | "Llegada"
-  | "Entregado";
+  | "Entregado"
+  | "Cancelado";
 export type PaymentStatus = "Pendiente" | "Cobrado" | "Parcial";
 
 export type OrderItemInput = {

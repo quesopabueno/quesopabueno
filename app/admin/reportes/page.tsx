@@ -9,7 +9,8 @@ import Link from "next/link";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, Map as MapIcon, Truck } from "lucide-react";
+import { ArrowLeft, Printer, Map as MapIcon, Truck, Trash2, Layers } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type PrintOrder = {
   id: string;
@@ -113,6 +114,40 @@ export default function ReportesPage() {
     setSelectedOrderIds(newSet);
   };
 
+  const handleDeleteOrder = async (db_id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("¿Seguro que quieres eliminar este pedido del reporte? Se marcará como Cancelado.")) return;
+    
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ order_status: "Cancelado" })
+        .eq("id", db_id);
+        
+      if (error) throw error;
+      
+      // Remove from local state
+      setOrders(current => current.filter(o => o.db_id !== db_id));
+      setSelectedOrderIds(current => {
+        const next = new Set(current);
+        next.delete(db_id);
+        return next;
+      });
+    } catch (err: any) {
+      alert("Error al eliminar pedido: " + err.message);
+    }
+  };
+
+  const groupedOrders = useMemo(() => {
+    const groups: Record<string, PrintOrder[]> = {};
+    orders.forEach((o) => {
+      const key = `${o.customerName.toLowerCase().trim()}|${o.address.toLowerCase().trim()}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(o);
+    });
+    return Object.values(groups);
+  }, [orders]);
+
   const handleSimplePrint = () => {
     if (selectedOrderIds.size === 0) {
       setErrorMsg("Selecciona al menos 1 pedido."); return;
@@ -130,8 +165,8 @@ export default function ReportesPage() {
     if (selectedOrderIds.size === 0) {
       setErrorMsg("Selecciona al menos 1 pedido para despachar."); return;
     }
-    if (!origin.trim() || !destination.trim()) {
-      setErrorMsg("Llena el punto de partida y el punto final de la ruta."); return;
+    if (!origin.trim()) {
+      setErrorMsg("Llena al menos el punto de partida."); return;
     }
     
     setDispatching(true);
@@ -140,21 +175,30 @@ export default function ReportesPage() {
     try {
       const selectedArr = orders.filter(o => selectedOrderIds.has(o.db_id));
       
-      const payload = selectedArr.map(o => ({
+      let actualDest = destination.trim();
+      let payloadForGoogle = selectedArr.map(o => ({
         id: o.db_id,
         address: o.address
       }));
 
-      // Inicia cálculo de la ruta
-      const sortedPayload = await optimizeRoute(origin, destination, payload);
+      let sortedIds: {id: string}[] = [];
+
+      if (!actualDest) {
+        // Si no hay destino, usamos la última parada como final
+        const lastStop = payloadForGoogle.pop()!;
+        const sortedWaypoints = await optimizeRoute(origin, lastStop.address, payloadForGoogle);
+        sortedIds = [...sortedWaypoints, lastStop];
+      } else {
+        sortedIds = await optimizeRoute(origin, actualDest, payloadForGoogle);
+      }
       
       // Conecta a Supabase para clavar los valores de delivery_sequence
-      setDispatchMsg("Guardando itinerario en la base de datos de los choferes...");
+      setDispatchMsg("Guardando itinerario en la base de datos...");
 
       const updatedOrders: PrintOrder[] = [];
       
-      for (let i = 0; i < sortedPayload.length; i++) {
-        const item = sortedPayload[i];
+      for (let i = 0; i < sortedIds.length; i++) {
+        const item = sortedIds[i];
         
         const { error } = await supabase.from("orders")
             .update({ delivery_sequence: i + 1, order_status: "En ruta" })
@@ -164,7 +208,6 @@ export default function ReportesPage() {
            throw new Error(`Error guardando db_id ${item.id}: ${error.message}`);
         }
 
-        // Reconstruimos el array original pero ordenado matemáticamente
         const originalOrderMatch = selectedArr.find(x => x.db_id === item.id);
         if (originalOrderMatch) {
             updatedOrders.push({ ...originalOrderMatch, delivery_sequence: i + 1, status: "En ruta" });
@@ -224,25 +267,75 @@ export default function ReportesPage() {
               {orders.length === 0 ? (
                 <p className="text-zinc-500">No hay órdenes pendientes en este momento.</p>
               ) : (
-                <div className="grid gap-3">
-                  {orders.map(o => {
-                    const isSelected = selectedOrderIds.has(o.db_id);
+                <div className="grid gap-4">
+                  {groupedOrders.map((group, idx) => {
+                    const first = group[0];
+                    const isMultiple = group.length > 1;
+                    const allSelected = group.every(o => selectedOrderIds.has(o.db_id));
+                    const someSelected = group.some(o => selectedOrderIds.has(o.db_id));
+                    
                     return (
                       <div 
-                        key={o.db_id} 
-                        onClick={() => toggleOrder(o.db_id)}
-                        className={`cursor-pointer border p-4 rounded-xl flex items-center gap-4 transition-all ${isSelected ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-1' : 'border-zinc-300 bg-white hover:border-zinc-400'}`}
+                        key={idx} 
+                        className={`border rounded-2xl overflow-hidden shadow-sm transition-all ${someSelected ? 'border-primary/50' : 'border-zinc-200 bg-white'}`}
                       >
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-primary bg-primary' : 'border-zinc-300'}`}>
-                          {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                        <div className={`p-4 flex items-center gap-4 ${someSelected ? 'bg-primary/5' : 'bg-white'}`}>
+                           <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-black text-lg text-zinc-900 capitalize">{first.customerName}</p>
+                                {isMultiple && <Badge className="bg-blue-600 font-bold">{group.length} Pedidos</Badge>}
+                              </div>
+                              <p className="text-xs text-zinc-500 font-medium flex items-center gap-1">
+                                <MapIcon className="w-3 h-3" /> {first.address}
+                              </p>
+                           </div>
+                           <Button 
+                             onClick={() => {
+                               const newIds = new Set(selectedOrderIds);
+                               if (allSelected) group.forEach(o => newIds.delete(o.db_id));
+                               else group.forEach(o => newIds.add(o.db_id));
+                               setSelectedOrderIds(newIds);
+                             }}
+                             variant={allSelected ? "default" : "outline"}
+                             size="sm"
+                             className="rounded-xl font-bold"
+                           >
+                             {allSelected ? "Deseleccionar" : "Seleccionar Todo"}
+                           </Button>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between items-center bg-">
-                            <span className="font-bold text-lg">{o.id}</span>
-                            <span className="text-xs uppercase font-semibold text-zinc-500">{o.deliveryWindow}</span>
-                          </div>
-                          <p className="font-semibold text-sm">{o.customerName}</p>
-                          <p className="text-xs text-zinc-600 line-clamp-1 truncate block">{o.address}</p>
+                        
+                        <div className="bg-zinc-50/50 p-2 space-y-2 border-t border-zinc-100">
+                          {group.map(o => (
+                            <div 
+                              key={o.db_id}
+                              onClick={() => toggleOrder(o.db_id)}
+                              className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${selectedOrderIds.has(o.db_id) ? 'bg-white border-primary shadow-sm' : 'bg-transparent border-transparent hover:bg-zinc-100'}`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${selectedOrderIds.has(o.db_id) ? 'bg-primary border-primary' : 'border-zinc-300'}`}>
+                                  {selectedOrderIds.has(o.db_id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm">{o.id}</span>
+                                    <span className="text-[10px] font-bold text-zinc-400">{o.deliveryWindow}</span>
+                                  </div>
+                                  <p className="text-[11px] text-zinc-600 truncate max-w-[200px]">
+                                    {o.items.map(i => `${i.qty}${i.unit} ${i.name}`).join(", ")}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                 <p className="font-black text-sm text-zinc-900">${o.total}</p>
+                                 <button 
+                                   onClick={(e) => handleDeleteOrder(o.db_id, e)}
+                                   className="p-2 text-zinc-400 hover:text-red-600 transition-colors"
+                                 >
+                                   <Trash2 className="w-4 h-4" />
+                                 </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
